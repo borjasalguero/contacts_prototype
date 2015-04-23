@@ -1,0 +1,25 @@
+{
+  "name": "Contacts prototype",
+  "description": "Contacts prototype",
+  "launch_path": "/index.html",
+  "type": "privileged",
+  "developer": {
+    "name": "The Gaia Team",
+    "url": "https://github.com/mozilla-b2g/gaia"
+  },
+  "permissions": {
+    "contacts":{ "access": "readwrite" }
+  },
+  "locales": {
+    "en-US": {
+      "name": "Contacts prototype",
+      "description": "Contacts prototype"
+    },
+    "es": {
+      "name": "Contacts prototype",
+      "description": "Contacts prototype"
+    }
+  },
+  "default_locale": "en-US",
+  "orientation": "portrait"
+}

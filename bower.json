@@ -1,0 +1,15 @@
+{
+  "name": "contacts-prototype",
+  "version": "0.0.0",
+  "authors": [
+    "Borja Salguero <borja.salguero@gmail.com>"
+  ],
+  "description": "Contacts prototype",
+  "private": true,
+  "ignore": [
+    "bower_components"
+  ],
+  "dependencies": {
+    "threads": "gaia-components/threads#master"
+  }
+}
