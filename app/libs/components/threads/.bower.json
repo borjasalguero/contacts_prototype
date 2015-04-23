@@ -1,0 +1,25 @@
+{
+  "name": "threads",
+  "main": "threads.js",
+  "authors": [
+    "Wilson Page <wilsonpage@me.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "homepage": "https://github.com/gaia-components/threads",
+  "_release": "2ed83617b1",
+  "_resolution": {
+    "type": "branch",
+    "branch": "master",
+    "commit": "2ed83617b1c3ab0ec13f0c40f8f4ce651d8dbec3"
+  },
+  "_source": "git://github.com/gaia-components/threads.git",
+  "_target": "master",
+  "_originalSource": "gaia-components/threads"
+}
