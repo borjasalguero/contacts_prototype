@@ -30,7 +30,6 @@ window.onload = function() {
 
   // Contacts service
   var contactsService = threads.client('contacts-service');
-
   var stream = contactsService.stream('getAll');
   // Called every time the service sends a contact
   stream.listen(function(data) {
@@ -48,23 +47,15 @@ window.onload = function() {
       }
     }
 
-
-
     setTimeout(function() {
       ul.appendChild(li);
     });
-
   });
 
   // "closed" is a Promise that will be fullfilled when stream is closed with
   // success or rejected when the service "abort" the operation
   stream.closed.then(function onStreamClose() {
-    // // Render colors based on dataset
-    // var lis = ul.querySelectorAll('li');
-    // for (var i = 0; i < lis.length; i++) {
-    //   var div = lis[i].querySelector('div');
-    //   div.style["background-color"] = div.dataset.color;
-    // }
+    /// TODO Use if needed
   }, function onStreamAbort() {
     console.log('ERROR: Stream aborted');
   });
@@ -74,41 +65,35 @@ window.onload = function() {
   // Navigation service
   var navigation = threads.client('navigation-service');
 
-  navigation.method('register', 'list').then(function(uuid) {
-    _uuid = uuid;
-  });
+  _uuid = navigation.id;
+  navigation.method('register', 'list', _uuid);
 
   navigation.on('beforenavigating', function(params) {
-    if (params.uuid === _uuid) {
-      // TODO Currently we dont need anything, but it would be useful
-      // for updating the list before showing it again.
-      document.querySelector('ul').classList.remove('no-events');
-    }
+    // TODO Currently we dont need anything, but it would be useful
+    // for updating the list before showing it again.
+    document.querySelector('ul').classList.remove('no-events');
   });
 
   navigation.on('navigationend', function(params) {
-    if (params.uuid === _uuid) {
-      document.querySelector('ul').classList.remove('no-events');
-      switch(params.previous) {
-        case 'detail':
-          // Remove effect from element moved previously
-          element.style.transform = '';
-          element.addEventListener(
-            'transitionend',
-            function transitionHandler() {
-              element.removeEventListener('transitionend', transitionHandler);
-              element.classList.remove('selected');
-            }
-          );
-          element.classList.remove('move-me');
-          break;
-        case 'settings':
-          settingsButton.classList.remove('rotate');
-          break;
-      }
-      return;
-
+    document.querySelector('ul').classList.remove('no-events');
+    switch(params.previous) {
+      case 'detail':
+        // Remove effect from element moved previously
+        element.style.transform = '';
+        element.addEventListener(
+          'transitionend',
+          function transitionHandler() {
+            element.removeEventListener('transitionend', transitionHandler);
+            element.classList.remove('selected');
+          }
+        );
+        element.classList.remove('move-me');
+        break;
+      case 'settings':
+        settingsButton.classList.remove('rotate');
+        break;
     }
+    return;
   });
 
   // Add listeners for 'tap' actions in the list

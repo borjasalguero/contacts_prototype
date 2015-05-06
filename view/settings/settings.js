@@ -5,15 +5,13 @@ window.onload = function() {
   // Navigation service
   var navigation = threads.client('navigation-service');
 
-  navigation.method('register', 'settings').then(function(uuid) {
-    _uuid = uuid;
-  });
+  _uuid = navigation.id;
+
+  navigation.method('register', 'settings', _uuid);
 
   navigation.on('beforenavigating', function(params) {
-    if (params.uuid === _uuid) {
-      // TODO Currently we dont need anything, but it would be useful
-      // for updating the list before showing it again.
-    }
+   	// TODO Currently we dont need anything, but it would be useful
+    // for updating the list before showing it again.
   });
 
   // Add listeners for 'tap' actions in the list
