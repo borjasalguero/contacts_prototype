@@ -99,11 +99,20 @@ var ContactsButtons = {
     return false;
   },
 
+  ///////////////////////////////////7777
+  getLength: function getLength(prop) {
+    if (!prop || !prop.length) {
+      return 0;
+    }
+    return prop.length;
+  },
+  ///////////////////////////////////777
+
   renderPhones: function cd_renderPhones(contact) {
     if (!contact.tel) {
       return;
     }
-    var telLength = Contacts.getLength(contact.tel);
+    var telLength = this.getLength(contact.tel);
     for (var tel = 0; tel < telLength; tel++) {
       var currentTel = contact.tel[tel];
       var typeKey = currentTel.type;

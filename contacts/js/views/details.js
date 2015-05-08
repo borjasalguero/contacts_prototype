@@ -209,6 +209,7 @@ contacts.Details = (function() {
 
   // readOnly tells us if we should allow editing the rendered contact.
   var render = function cd_render(currentContact, fbContactData, readOnly) {
+    console.info("here3");
     if(isAFavoriteChange){
       isAFavoriteChange = false;
       return Promise.resolve(isAFavoriteChange);
@@ -216,8 +217,11 @@ contacts.Details = (function() {
 
     contactData = currentContact || contactData;
 
-    isFbContact = fb.isFbContact(contactData);
-    isFbLinked = fb.isFbLinked(contactData);
+    //isFbContact = fb.isFbContact(contactData);
+    //isFbLinked = fb.isFbLinked(contactData);
+
+    isFbContact = false;
+    isFbLinked = false;
 
     // Initially enabled and only disabled if necessary
     editContactButton.removeAttribute('disabled');
@@ -283,7 +287,9 @@ contacts.Details = (function() {
     contactDetails.classList.remove('no-photo');
     contactDetails.classList.remove('fb-contact');
     contactDetails.classList.remove('up');
+    /*
     utils.dom.removeChildNodes(listContainer);
+    */
 
     renderFavorite(contact);
     renderOrg(contact);
@@ -298,6 +304,7 @@ contacts.Details = (function() {
     renderDates(contact);
 
     renderNotes(contact);
+    /*
     if (fb.isEnabled) {
       renderSocial(contact);
     }
@@ -305,7 +312,7 @@ contacts.Details = (function() {
     if (!fb.isFbContact(contact) || fb.isFbLinked(contact)) {
       renderDuplicate(contact);
     }
-
+    */
     renderPhoto(contact);
   };
 
