@@ -41,6 +41,21 @@
      * @return {HTMLCanvasElement}
      */
     _createCanvas: function() {
+      // To get the smoother rounded circle for each icon, adding one pixel
+      // padding in bottom to support different size of icon images
+      const CANVAS_PADDING_BOTTOM = 1 * devicePixelRatio;
+      var canvas = document.createElement('canvas');
+      canvas.width = this._maxSize + (CANVAS_PADDING * 2);
+      canvas.height = this._maxSize + CANVAS_PADDING + CANVAS_PADDING_BOTTOM;
+      return canvas;
+    },
+
+    /**
+     * Creates a properly sized canvas to match the maxSize + padding
+     * for clip.
+     * @return {HTMLCanvasElement}
+     */
+    _createClipCanvas: function() {
       var canvas = document.createElement('canvas');
       canvas.width = this._maxSize + (CANVAS_PADDING * 2);
       canvas.height = this._maxSize + (CANVAS_PADDING * 2);
@@ -74,7 +89,7 @@
         var shadowCanvas = this._createCanvas();
         var shadowCtx = this._decorateShadowCanvas(shadowCanvas);
 
-        var clipCanvas = this._createCanvas();
+        var clipCanvas = this._createClipCanvas();
         var clipCtx = clipCanvas.getContext('2d',
                                             { willReadFrequently: true });
 
@@ -86,16 +101,9 @@
         clipCtx.drawImage(img, 0, 0,
                                clipCanvas.width, clipCanvas.height);
 
-        clipCanvas.toBlob((blob) => {
-          var clipImage = new Image();
-          clipImage.onload = () => {
-            shadowCtx.drawImage(clipImage, CANVAS_PADDING, CANVAS_PADDING,
+        shadowCtx.drawImage(clipCanvas, CANVAS_PADDING, CANVAS_PADDING,
                                 this._maxSize, this._maxSize);
-            shadowCanvas.toBlob(resolve);
-            URL.revokeObjectURL(clipImage.src);
-          };
-          clipImage.src = URL.createObjectURL(blob);
-        });
+        shadowCanvas.toBlob(resolve);
       });
     },
 

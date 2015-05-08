@@ -8,10 +8,11 @@ form.search {
   left: 0;
   text-align: left;
   z-index: 5;
+  display: flex;
 }
 
 #search-container {
-  padding-right: 2.5rem;
+  -moz-padding-end: 2.5rem;
 }
 
 #search-view:not(.insearchmode) form.search * {
@@ -20,6 +21,14 @@ form.search {
 
 #search-view.insearchmode form.search input {
   pointer-events: auto;
+}
+
+form.search p {
+  flex-basis: 100%;
+}
+
+#search-view.insearchmode form.search p {
+  flex-basis: auto;
 }
 
 form.search label {
@@ -69,13 +78,19 @@ form.search button[type="submit"] {
 }
 
 #no-result {
-  margin: 9.5rem 1.5rem 0;
+  margin-top: 9.5rem;
+  -moz-margin-start: 1.5rem;
+  -moz-margin-end: 1.5rem;
   padding-top: 1.5rem;
   color: #000;
   font-size: 2.4rem;
   font-weight: 300;
   text-align: left;
   border-top: 0.1rem solid #bdbdbd;
+}
+
+html[dir="rtl"] #no-result {
+  text-align: right;
 }
 
 #search-progress {
@@ -106,7 +121,8 @@ form.search button[type="submit"] {
 #groups-list-search {
   position: relative;
   text-align: left;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   z-index: 1;
 }
 
@@ -138,6 +154,12 @@ form.search button[type="submit"] {
   display: none !important;
 }
 
-span.highlight {
+mark {
   background-color: #b2f2ff;
+}
+
+
+#searchview-container p input::-moz-placeholder,
+#search-container p input::-moz-placeholder {
+  background: none;
 }

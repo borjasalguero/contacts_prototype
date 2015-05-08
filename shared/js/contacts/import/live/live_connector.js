@@ -1,6 +1,7 @@
 'use strict';
 
 /* global Rest */
+/* global utils */
 
 if (!window.LiveConnector) {
   window.LiveConnector = (function() {
@@ -84,7 +85,10 @@ if (!window.LiveConnector) {
         out.uid = source.user_id || source.id;
         out.givenName = [source.first_name || ''];
         out.familyName = [source.last_name || ''];
-        out.email1 = source.emails.account || '';
+        out.email1 = source.emails.account ||
+         source.emails.preferred ||
+         source.emails.personal ||
+         '';
 
         out.contactPictureUri = [LIVE_ENDPOINT, out.uid,
                                  PICTURE_RESOURCE, '?type=medium'].join('');
@@ -108,16 +112,14 @@ if (!window.LiveConnector) {
           }]
         };
 
-        var byear = liveContact.birth_year;
-        var bmonth = liveContact.birth_month;
+        // Months in JS goes from 0 to 11 :(
+        var bmonth = liveContact.birth_month - 1;
         var bday = liveContact.birth_day;
         if (bmonth && bday) {
           var birthdate = out.bday = new Date();
           birthdate.setUTCDate(bday);
           birthdate.setUTCMonth(bmonth, bday);
-          if (byear) {
-            birthdate.setUTCFullYear(byear);
-          }
+          birthdate.setUTCFullYear(utils.misc.FLAG_YEAR_IGNORED);
         }
 
         var liveEmails = liveContact.emails || {};

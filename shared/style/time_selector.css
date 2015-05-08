@@ -17,16 +17,6 @@
   font-family: sans-serif;
 }
 
-#screen.fullscreen-layout-app.software-button-enabled [role="dialog"][data-type="time-selector"] {
-  height: calc(100% - 5rem - 7rem);
-}
-
-@media (orientation: landscape) {
-  #screen.fullscreen-layout-app.software-button-enabled [role="dialog"][data-type="time-selector"] {
-    height: calc(100% - 7rem);
-  }
-}
-
 [role="dialog"][data-type="time-selector"] h1 {
   font-weight: 400;
   font-size: 1.9rem;
@@ -195,13 +185,12 @@
 }
 
 [role="dialog"][data-type="time-selector"] .animation-on {
-  transition-duration: 0.5s;
-  transition-property: transform;
+  transition: transform var(--transition-duration) cubic-bezier(0, 0, 0.4, 1);
 }
 
 [role="dialog"][data-type="time-selector"]  .picker-unit {
   position: relative;
-  font: 2.2em/5.6rem Sans-serif;
+  font: 2.2rem/5.6rem Sans-serif;
   color: #fff;
   text-align: center;
   vertical-align: middle;

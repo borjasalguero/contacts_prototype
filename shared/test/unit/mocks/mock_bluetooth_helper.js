@@ -13,11 +13,19 @@ var MockBluetoothHelperInstance = {
   getConnectedDevicesByProfile: function() {},
   connectSco: function() {},
   disconnectSco: function() {},
+  getPairedDevices: function() {},
+  getAddress: function() {},
   setPairingConfirmation: function() {},
   setPinCode: function() {},
   setPasskey: function() {},
+  isScoConnected: function() {},
+  sendMediaMetaData: function() {},
+  sendMediaPlayStatus: function() {},
   onhfpstatuschanged: null,
-  onscostatuschanged: null
+  onscostatuschanged: null,
+  ona2dpstatuschanged: null,
+  onpairedstatuschanged: null,
+  onrequestmediaplaystatus: null
 };
 
 var MockBluetoothHelper = function() {

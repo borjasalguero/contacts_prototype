@@ -78,6 +78,14 @@
     persistToDB: true,
 
     /**
+     * Cached values of the last transform of the element, to avoid redundant
+     * style changes.
+     */
+    lastX: null,
+    lastY: null,
+    lastScale: null,
+
+    /**
      * Whether or not this item has a cached icon or not.
      */
     get hasCachedIcon() {
@@ -158,6 +166,29 @@
     },
 
     /**
+     * Sets the item coordinates
+     */
+    setCoordinates: function(x, y) {
+      this.x = x;
+      this.y = y;
+    },
+
+    /**
+     * Dispatches a gaiagrid-attention signal with the rect of the item.
+     */
+    requestAttention: function() {
+      var rect = {
+        x: this.x,
+        y: this.y,
+        width: this.gridWidth * this.grid.layout.gridItemWidth,
+        height: this.pixelHeight
+      };
+
+      this.grid.element.dispatchEvent(
+        new CustomEvent('gaiagrid-attention', { detail: rect }));
+    },
+
+    /**
      * Given a list of icons that match a size, return the closest icon to
      * reduce possible pixelation by picking a wrong size.
      * @param {Object} choices An object mapping icon size to icon URL.
@@ -165,6 +196,18 @@
     closestIconFromList: function(choices) {
       if (!choices) {
         return this.defaultIcon;
+      }
+      var icon;
+      var maxSize = this.grid.layout.gridMaxIconSize; // The goal size
+
+      // Check for W3C web manifest format for icons
+      if (Array.isArray(choices)) {
+        var manifest = {
+          'icons': choices
+        };
+        icon = window.WebManifestHelper.iconURLForSize(manifest,
+          this.app.manifestURL, maxSize);
+        return icon.href;
       }
 
       // Create a list with the sizes and order it by descending size.
@@ -180,7 +223,6 @@
         return this.defaultIcon;
       }
 
-      var maxSize = this.grid.layout.gridMaxIconSize; // The goal size
       var accurateSize = list[0]; // The biggest icon available
       for (var i = 0; i < length; i++) {
         var size = list[i];
@@ -192,13 +234,11 @@
         accurateSize = size;
       }
 
-      var icon = choices[accurateSize];
+      icon = choices[accurateSize];
 
       // Handle relative URLs
       if (!UrlHelper.hasScheme(icon)) {
-        var a = document.createElement('a');
-        a.href = this.app.origin;
-        icon = a.protocol + '//' + a.host + icon;
+        icon = this.app.origin + icon;
       }
 
       return icon;
@@ -227,6 +267,19 @@
       background.onload = () => {
         this._decorateIcon(background);
         URL.revokeObjectURL(background.src);
+      };
+      background.onerror = () => {
+        URL.revokeObjectURL(background.src);
+
+        // If we already have a cached icon, do not overwrite it on error.
+        if (this.hasCachedIcon) {
+          this._stampElementWithIcon('blobcache');
+          this._displayDecoratedIcon(this.detail.decoratedIconBlob, true);
+          return;
+        }
+
+        this.renderIconFromSrc(this.defaultIcon);
+        this._stampElementWithIcon(this.defaultIcon);
       };
     },
 
@@ -259,8 +312,9 @@
         style.height = this.grid.layout.gridItemHeight + 'px';
         // icon size + padding for shadows implemented in the icon renderer
         var backgroundHeight =
-          ((this.grid.layout.gridIconSize * (1 / this.scale)) +
+          ((this.grid.layout.gridIconSize * (1 / this.grid.layout.percent)) +
           GridIconRenderer.prototype.unscaledCanvasPadding);
+
         if (this.grid.layout.gridItemHeight > backgroundHeight) {
           style.backgroundSize = backgroundHeight + 'px';
         } else {
@@ -439,7 +493,6 @@
           this._stampElementWithIcon(icon);
         }).
         catch((err) => {
-          console.error('Error fetching icon', err);
           blobNotFound();
         });
     },
@@ -481,11 +534,9 @@
 
     /**
      * Renders the icon to the container.
-     * @param {Array} coordinates Grid coordinates to render to.
-     * @param {Number} index The index of the items list of this item.
      */
-    render: function(coordinates, index) {
-      this.scale = this.grid.layout.percent;
+    render: function() {
+      var scale = this.grid.layout.percent * this.scale;
 
       // Generate an element if we need to
       if (!this.element) {
@@ -494,18 +545,20 @@
         tile.dataset.identifier = this.identifier;
         tile.dataset.isDraggable = this.isDraggable();
         tile.setAttribute('role', 'link');
+        tile.style.width = (this.grid.layout.constraintSize / 3) + 'px';
 
         // This <p> has been added in order to place the title with respect
         // to this container via CSS without touching JS.
         var nameContainerEl = document.createElement('p');
         nameContainerEl.style.marginTop = ((this.grid.layout.gridIconSize *
-          (1 / this.scale)) +
+          (1 / this.grid.layout.percent)) +
           (GridIconRenderer.prototype.unscaledCanvasPadding / 2)) + 'px';
         tile.appendChild(nameContainerEl);
 
         var nameEl = document.createElement('span');
         nameEl.className = 'title';
-        nameEl.textContent = this.name;
+        nameEl.setAttribute('dir', 'auto');
+
         nameContainerEl.appendChild(nameEl);
 
         // Add delete link if this icon is removable
@@ -516,22 +569,12 @@
         }
 
         this.element = tile;
+        this.updateTitle();
         this.renderIcon(true);
         this.grid.element.appendChild(tile);
       }
 
-      var x = coordinates[0] * this.grid.layout.gridItemWidth;
-      var y = this.grid.layout.offsetY;
-      this.setPosition(index);
-      this.x = x;
-      this.y = y;
-
-      // Avoid rendering the icon during a drag to prevent jumpiness
-      if (this.noTransform) {
-        return;
-      }
-
-      this.transform(x, y, this.grid.layout.percent);
+      this.transform(this.x, this.y, scale);
     },
 
     /**
@@ -539,9 +582,32 @@
      */
     transform: function(x, y, scale, element) {
       scale = scale || 1;
-      element = element || this.element;
+
+      if (!element) {
+        if (x === this.lastX && y === this.lastY && scale === this.lastScale) {
+          return;
+        }
+        element = this.element;
+        this.lastX = x;
+        this.lastY = y;
+        this.lastScale = scale;
+      }
+
       element.style.transform =
         'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
+    },
+
+    /**
+     * Set whether the item is being dragged.
+     */
+    setActive: function(active) {
+      if (active) {
+        this.element.classList.add('active');
+        this.active = true;
+      } else {
+        this.element.classList.remove('active');
+        this.active = false;
+      }
     },
 
     /**
@@ -553,7 +619,14 @@
         return;
       }
       var nameEl = this.element.querySelector('.title');
-      nameEl.textContent = this.name;
+
+      if (this.asyncName) {
+        this.asyncName().then(function(name) {
+          nameEl.textContent = name;
+        });
+      } else {
+        nameEl.textContent = this.name;
+      }
     },
 
     /**

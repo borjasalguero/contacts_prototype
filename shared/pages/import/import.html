@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1">
 
-    <link rel="resource" type="application/l10n" href="/shared/locales/facebook.ini">
+    <meta name="defaultLanguage" content="en-US">
+    <meta name="availableLanguages" content="en-US">
+    <link rel="localization" href="/shared/locales/facebook/facebook.{locale}.properties">
     <script type="text/javascript" src="/shared/js/l10n.js"></script>
 
     <script type="text/javascript" src="/shared/js/async_storage.js"></script>
@@ -41,6 +43,8 @@
     <script defer type="text/javascript" src="/shared/elements/gaia_buttons/script.js"></script>
 
     <script defer type="text/javascript" src="/shared/js/contacts/import/friends_list.js"></script>
+
+    <script defer type="text/javascript" src="/shared/js/utilities.js"></script>
     <script defer type="text/javascript" src="/shared/js/contacts/search.js"></script>
 
     <!-- To include these files on the standard app
@@ -52,6 +56,9 @@
       <link href="/shared/js/contacts/import/gmail/gmail_connector.js">
       <link href="/shared/js/contacts/import/live/live_connector.js">
       <link href="/shared/js/contacts/import/facebook/facebook_connector.js">
+
+      <link href="/shared/js/contacts/import/utilities/config.js">
+      <link href="/shared/js/image_utils.js">
     -->
 
     <!--
@@ -79,10 +86,10 @@
     <link href="/shared/style/animations.css" rel="stylesheet">
 
     <!-- Web Components -->
-    <!-- <link rel="stylesheet" type="text/css" href="/shared/elements/gaia-icons/style.css" /> -->
-    <link rel="stylesheet" type="text/css" href="/shared/elements/gaia-theme/style.css" />
+    <!-- <link rel="stylesheet" type="text/css" href="/shared/elements/gaia-icons/gaia-icons.css" /> -->
+    <link rel="stylesheet" type="text/css" href="/shared/elements/gaia-theme/gaia-theme.css" />
     <script defer src="/shared/elements/config.js"></script>
-    <script defer src="/shared/elements/gaia-header/dist/script.js"></script>
+    <script defer src="/shared/elements/gaia-header/dist/gaia-header.js"></script>
 
     <!--
     <link rel="stylesheet" href="/shared/pages/import/style/root.css">
@@ -96,8 +103,8 @@
     <section role="region" id="content" class="import">
 
       <gaia-header id="header" action="close">
-        <button id="import-action" data-l10n-id="import" disabled>Import</button>
         <h1>Service</h1>
+        <button id="import-action" data-l10n-id="import" disabled>Import</button>
       </gaia-header>
 
       <section id="main">
@@ -160,14 +167,14 @@
 
       <section id="search-view" class="view" role="region">
         <form id="searchview-container" role="search" class="search">
-           <button id='done-search' type="submit" data-l10n-id="done-search">Done</button>
-           <p>
-             <label for="search-contact">
-               <input type="search" name="search" class="textfield"
-                    placeholder="Search" id="search-contact"  data-l10n-id="search-contact">
-               <button type="reset">Clear</button>
-             </label>
-           </p>
+          <p>
+            <label for="search-contact">
+              <input type="search" name="search" class="textfield"
+                   placeholder="Search" id="search-contact"  data-l10n-id="search-contact">
+              <button type="reset">Clear</button>
+            </label>
+          </p>
+          <button id='done-search' type="submit" data-l10n-id="done-search">Done</button>
         </form>
         <section id="groups-list-search">
           <ol id="search-list" class="selecting active" data-type="list">

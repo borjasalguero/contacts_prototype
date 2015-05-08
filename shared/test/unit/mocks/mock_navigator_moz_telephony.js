@@ -67,8 +67,9 @@
   function mnmt_mTriggerCallsChanged() {
     if (Mock.oncallschanged) {
       Mock.oncallschanged();
-      mnmt_mTriggerEvent('callschanged');
     }
+
+    mnmt_mTriggerEvent({ type: 'callschanged' });
   }
 
   function mnmt_mTriggerGroupCallsChanged() {
@@ -95,12 +96,16 @@
     dial: function() { return {}; },
     dialEmergency: function() {},
     conferenceGroup: {
+      hangUp: function() { return {}; },
       add: function() {},
       hold: function() {},
-      resume: function() {}
+      resume: function() {},
+      addEventListener: function() {},
+      removeEventListener: function() {}
     },
     startTone: function(dtmfChar) {},
     stopTone: function() {},
+    sendTones: function() {},
 
     addEventListener: mnmt_addEventListener,
     removeEventListener: mnmt_removeEventListener,

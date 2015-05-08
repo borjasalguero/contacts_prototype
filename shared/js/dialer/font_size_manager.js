@@ -62,13 +62,17 @@ var FontSizeManager = (function fontSizeManager() {
      If the content is still too large within the size contraints, it will add
      an ellipsis */
   function adaptToSpace(scenario, view, forceMaxFontSize, ellipsisSide) {
-    // We don't care about the font size of empty views
-    if (!view.value && !view.textContent) {
+    // Bug 1082139 - JavascriptException: JavascriptException: TypeError:
+    //  window.getComputedStyle(...) is null at://
+    //  app://callscreen.gaiamobile.org/gaia_build_defer_index.js line: 146
+    var computedStyle = window.getComputedStyle(view);
+    if ((!view.value && !view.textContent) || !computedStyle) {
+      // We don't care about the font size of empty views
       return;
     }
 
     var viewWidth = view.getBoundingClientRect().width;
-    var viewFont = window.getComputedStyle(view).fontFamily;
+    var viewFont = computedStyle.fontFamily;
 
     var allowedSizes;
     if (forceMaxFontSize) {
@@ -87,20 +91,19 @@ var FontSizeManager = (function fontSizeManager() {
     if (infos && infos.overflow) {
       var overflowCount = FontSizeUtils.getOverflowCount(
         view.value || view.textContent, newFontSize, viewFont, viewWidth);
+
+      // Add two characters to the overflowcount to account for "…" width
+      overflowCount += 2;
       _useEllipsis(view, overflowCount, ellipsisSide);
+      view.dataset.ellipsedCharacters = overflowCount;
+    } else {
+      view.dataset.ellipsedCharacters = 0;
     }
   }
 
   function _useEllipsis(view, overflowCount, ellipsisSide) {
-    // Add two characters to the overflowcount to account for "…" width
-    overflowCount += 2;
     var side = ellipsisSide || 'begin';
-    var localizedSide;
-    if (navigator.mozL10n.language.direction === 'rtl') {
-      localizedSide = (side === 'begin' ? 'right' : 'left');
-    } else {
-      localizedSide = (side === 'begin' ? 'left' : 'right');
-    }
+    var localizedSide = (side === 'begin' ? 'left' : 'right');
 
     var value = view.value || view.textContent;
     if (localizedSide == 'left') {
@@ -112,7 +115,8 @@ var FontSizeManager = (function fontSizeManager() {
     if (view.value) {
       view.value = value;
     } else {
-      view.textContent = value;
+      var el = view.querySelector('bdi') || view;
+      el.textContent = value;
     }
   }
 
@@ -131,6 +135,10 @@ var FontSizeManager = (function fontSizeManager() {
                             (maxFontSize - fontSize) / 2 + 'px';
   }
 
+  function resetFixedBaseline(view) {
+    view.style.removeProperty('line-height');
+  }
+
   return {
     DIAL_PAD: DIAL_PAD,
     SINGLE_CALL: SINGLE_CALL,
@@ -138,6 +146,7 @@ var FontSizeManager = (function fontSizeManager() {
     STATUS_BAR: STATUS_BAR,
     SECOND_INCOMING_CALL: SECOND_INCOMING_CALL,
     adaptToSpace: adaptToSpace,
-    ensureFixedBaseline: ensureFixedBaseline
+    ensureFixedBaseline: ensureFixedBaseline,
+    resetFixedBaseline: resetFixedBaseline
   };
 })();

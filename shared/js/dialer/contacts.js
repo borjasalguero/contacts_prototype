@@ -1,7 +1,12 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- /
-/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
-
 'use strict';
+/* global
+  asyncStorage,
+  fb,
+  LazyLoader,
+  MozActivity,
+  SimplePhoneMatcher
+*/
+/* exported Contacts */
 
 var Contacts = {
 
@@ -132,6 +137,29 @@ var Contacts = {
     };
   },
 
+  _mergeOneFbContact: function _mergeOneFbContact(contacts, index) {
+    return new Promise(function(resolve, reject) {
+      var fbReq = fb.getData(contacts[index]);
+
+      fbReq.onsuccess = function() {
+        // We don't have to merge phone numbers from FB in order to avoid
+        // duplicate contacts in suggesstion bar because it also searches
+        // matchings in facebook datastore. It means that this method
+        // returns mozContacts merged but without FB's phone numbers (just
+        // local ones)
+        var originalTel = contacts[index].tel;
+        contacts[index] = fbReq.result;
+        contacts[index].tel = originalTel;
+        resolve();
+      };
+
+      fbReq.onerror = function() {
+        console.error('Could not merge Facebook data for', contacts[index].id);
+        reject();
+      };
+    });
+  },
+
   _mergeFbContacts: function _mergeFbContacts(contacts, callback) {
     if (!callback || !(callback instanceof Function)) {
       return;
@@ -142,24 +170,23 @@ var Contacts = {
     }
 
     LazyLoader.load(this._FB_FILES, function() {
-      for (var i = 0, length = contacts.length; i < length; i++) {
-        if (fb.isFbContact(contacts[i])) {
-          var fbReq = fb.getData(contacts[i]);
-          fbReq.onsuccess = function() {
-            contacts[i] = fbReq.result;
-            if (i === (length - 1)) {
-              callback(contacts);
-            }
-          };
-          fbReq.onerror = function() {
-            console.error('Could not merge Facebook data');
-            callback(contacts);
-          };
-        } else if (i === (length - 1)) {
+      var pending = contacts.length;
+
+      var onContactMerged = function() {
+        if (--pending === 0) {
           callback(contacts);
         }
+      };
+
+      for (var i = 0, length = contacts.length; i < length; i++) {
+        if (fb.isFbContact(contacts[i])) {
+          this._mergeOneFbContact(contacts, i).then(onContactMerged,
+                                                    onContactMerged);
+        } else {
+          onContactMerged();
+        }
       }
-    });
+    }.bind(this));
   },
 
   _findContacts: function _findContacts(options, callback) {
@@ -218,6 +245,7 @@ var Contacts = {
   },
 
   sendEmailOrPick: function sendEmailOrPick(address) {
+    /* jshint nonew: false */
     try {
       // We don't check the email format, lets the email
       // app do that

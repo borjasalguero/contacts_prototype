@@ -77,8 +77,8 @@
     /**
      * This method overrides the GridItem.render function.
      */
-    render: function(coordinates, index) {
-      GaiaGrid.GridItem.prototype.render.call(this, coordinates, index);
+    render: function() {
+      GaiaGrid.GridItem.prototype.render.call(this);
       this.element.classList.add('bookmark');
       if (this.isEditable()) {
         this.element.classList.add('editable');
@@ -92,8 +92,7 @@
       var features = {
         name: this.name,
         icon: this.icon,
-        remote: true,
-        useAsyncPanZoom: true
+        remote: true
       };
 
       var url = this.detail.url;

@@ -1,7 +1,5 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- /
-/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
-
 'use strict';
+/* global ScreenLayout */
 
 /**
  * This is one of possible LockScreen unlockers, and is the default unlocker
@@ -197,13 +195,13 @@
 
     // Paths to access the resources.
     resources: {
-      larrow: '/style/lockscreen/images/larrow.png',
-      rarrow: '/style/lockscreen/images/rarrow.png'
+      larrow: '/lockscreen/style/images/larrow.png',
+      rarrow: '/lockscreen/style/images/rarrow.png'
     },
 
     resourcesNew: {
-      larrow: '/style/lockscreen/images/lockscreen_toggle_arrow_left.png',
-      rarrow: '/style/lockscreen/images/lockscreen_toggle_arrow_right.png'
+      larrow: '/lockscreen/style/images/lockscreen_toggle_arrow_left.png',
+      rarrow: '/lockscreen/style/images/lockscreen_toggle_arrow_right.png'
     }
   };
 
@@ -229,6 +227,14 @@
       this.publish('lockscreenslide-unlocker-initializer');
       this.states.initialized = true;
     };
+
+  LockScreenSlidePrototype.reset = function lss_reset() {
+    this._clearCanvas();
+    this._drawTrack();
+    this._resetHandle();
+    this._resetArrows();
+    this._drawIconBG();
+  };
 
   /**
    * Overwrite settings recursively.
@@ -312,6 +318,17 @@
 
           this._endGesture();
           break;
+
+        case 'click':
+          if (evt.mozInputSource === 0) {
+            evt.preventDefault();
+            if (this.areas.left === evt.target) {
+              this.publish('lockscreenslide-activate-left');
+            } else if (this.areas.right === evt.target) {
+              this.publish('lockscreenslide-activate-right');
+            }
+          }
+          break;
       }
     };
 
@@ -330,6 +347,8 @@
       this.areas.right = document.getElementById(this.IDs.areas.right);
 
       this.area.addEventListener('touchstart', this);
+      this.areas.left.addEventListener('click', this);
+      this.areas.right.addEventListener('click', this);
 
       // Capture the first overlay change and do the delayed initialization.
       this.layout = (ScreenLayout && ScreenLayout.getCurrentLayout &&
@@ -471,6 +490,8 @@
     function lss_onSliding(tx) {
       var mtx = this._mapCoord(tx, 0)[0];
       var isLeft = tx - this.center.x < 0;
+      var prevState;
+      var currentState;
       this._clearCanvas();
 
       var expandSentinelR = this.center.x +
@@ -479,39 +500,39 @@
       var expandSentinelL = this.center.x -
         this.handle.autoExpand.sentinelWidth;
 
-      var center = this.center;
-      var radius = this.handle.radius;
-      var ctx = this.canvas.getContext('2d');
-
       if (tx > expandSentinelR || tx < expandSentinelL) {
-          var prevState = this.handle.autoExpand.accState;
+          prevState = this.handle.autoExpand.accState;
           this.handle.autoExpand.accState = 'accelerating';
-          var currentState = this.handle.autoExpand.accState;
+          currentState = this.handle.autoExpand.accState;
           var slow = false;
           if (isLeft) {
             slow = this.states.touch.deltaX > 0;
-            if (prevState !== currentState)
+            if (prevState !== currentState) {
               this.publish('lockscreenslide-near-left',
                   {'currentState': currentState, 'prevState': prevState});
+            }
           } else {
             slow = this.states.touch.deltaX < 0;
-            if (prevState !== currentState)
+            if (prevState !== currentState) {
               this.publish('lockscreenslide-near-right',
                   {'currentState': currentState, 'prevState': prevState});
+            }
           }
       } else {
-        var prevState = this.handle.autoExpand.accState;
+        prevState = this.handle.autoExpand.accState;
         this.handle.autoExpand.accState = 'normal';
-        var currentState = this.handle.autoExpand.accState;
+        currentState = this.handle.autoExpand.accState;
         if (prevState !== currentState) {
           if (isLeft) {
-            if (prevState !== currentState)
+            if (prevState !== currentState) {
               this.publish('lockscreenslide-near-left',
                   {'currentState': currentState, 'prevState': prevState});
+            }
           } else {
-            if (prevState !== currentState)
+            if (prevState !== currentState) {
               this.publish('lockscreenslide-near-right',
                   {'currentState': currentState, 'prevState': prevState});
+            }
           }
         }
       }
@@ -533,7 +554,6 @@
    */
   LockScreenSlidePrototype._onSlideBegin =
     function lss_onSlideBegin(tx) {
-      var canvasCenterX = this.canvas.clientWidth >> 1;
       var center = this.center;
 
       // To see if the finger touch on the area of the center circle.
@@ -577,24 +597,12 @@
     function lss_onSlideEnd() {
 
       var isLeft = this.states.touch.pageX - this.center.x < 0;
-      var bounceEnd = (function _bounceEnd() {
-        this._clearCanvas();
-        this._drawTrack();
-        this._resetHandle();
-        this._resetArrows();
-        this._drawIconBG();
-      }).bind(this);
-
       if (false === this.states.slideReachEnd) {
-        this._bounceBack(this.states.touch.pageX, bounceEnd);
+        this._bounceBack(this.states.touch.pageX);
       } else {
         var intention = isLeft ? 'lockscreenslide-activate-left' :
           'lockscreenslide-activate-right';
         this.publish(intention);
-
-        // Restore it only after screen changed.
-        var appLaunchDelay = 400;
-        setTimeout(bounceEnd, appLaunchDelay);
       }
 
       this.publish('lockscreenslide-unlocking-stop');
@@ -615,8 +623,9 @@
       if (!touch.touched) {
 
         // Do nothing if the user have not move the finger to the slide yet.
-        if (!this.states.sliding)
+        if (!this.states.sliding) {
           return;
+        }
 
         touch.touched = true;
         touch.initX = pageX;
@@ -649,11 +658,13 @@
       var accFactor = this.handle.autoExpand.accFactor;
       var acc = Math.pow(dx, accFactor);
       var accTx = tx + acc;
-      if (isLeft)
+      if (isLeft) {
         accTx = tx - acc;
+      }
 
-      if (accTx < 0)
+      if (accTx < 0) {
         accTx = 0;
+      }
       return accTx;
     };
 
@@ -680,9 +691,6 @@
    */
   LockScreenSlidePrototype._bounceBack =
     function lss_bounceBack(tx, cb) {
-      var canvas = this.canvas;
-      var ctx = canvas.getContext('2d');
-
       // Absolute coordinate of the canvas center.
       var duration = this.handle.bounceBackTime;
       var center = this.center;
@@ -694,12 +702,14 @@
       var isLeft = tx - center.x < 0;
 
       var drawIt = (function _drawIt(ts) {
-        if (null === tsBegin)
+        if (null === tsBegin) {
           tsBegin = ts;
+        }
 
         if (ts - tsBegin < duration) {
-          if (0 === mspf)
+          if (0 === mspf) {
             mspf = ts - tsBegin;  // Not an accurate way to determine mspf.
+          }
           interval = Math.abs(center.x - tx) / (duration / mspf);
           nextTx = isLeft ? nextTx + interval : nextTx - interval;
           if ((isLeft && nextTx < center.x) ||
@@ -718,8 +728,9 @@
           this._drawArrowsTo(center.x);
           this._drawIconBG();
           this._drawSlideTo(center.x);
-          if (cb)
+          if (cb) {
             cb();
+          }
         }
       }).bind(this);
       requestAnimationFrame(drawIt);
@@ -746,11 +757,12 @@
     function lss_drawArrows(tx) {
       var canvas = this.canvas;
       var ctx = canvas.getContext('2d');
-      var radius = this.handle.radius;
       var center = this.center;
       var offset = tx - center.x;
       var isLeft = offset < 0;
       var alpha = 1 - Math.min(1, Math.abs(offset) / this._dpx(30));
+      var position;
+      var oldAlpha;
 
       if (this.handle.maxWidth < Math.abs(offset)) {
         this.states.slideReachEnd = true;
@@ -761,11 +773,11 @@
       // The Y of arrows: need to put it from center to sink half of the arrow.
       if (isLeft) {
         // XXX:<<1: OK but don't know why!
-        var position =
+        position =
           this.useNewStyle ?
           (tx - this.arrows.left.width - this.handle.radius) :
           (tx - (this.arrows.left.width << 1));
-        var oldAlpha = ctx.globalAlpha;
+        oldAlpha = ctx.globalAlpha;
         ctx.globalAlpha = alpha;
         ctx.drawImage(this.arrows.left,
           position,
@@ -780,11 +792,11 @@
           this.arrows.right.height);
 
       } else {
-        var position =
+        position =
           this.useNewStyle ?
           (tx + this.handle.radius) :
           (tx + this.arrows.right.width);
-        var oldAlpha = ctx.globalAlpha;
+        oldAlpha = ctx.globalAlpha;
         ctx.globalAlpha = alpha;
         ctx.drawImage(this.arrows.right,
           position,
@@ -811,10 +823,12 @@
       var ctx = canvas.getContext('2d');
 
       var radius = this.track.radius;
+      var startAngle;
+      var endAngle;
 
       if (this.useNewStyle) {
-        var startAngle = 1.5 * Math.PI;
-        var endAngle = 0.5 * Math.PI;
+        startAngle = 1.5 * Math.PI;
+        endAngle = 0.5 * Math.PI;
 
         var draw = (function(fillStyle, strokeStyle) {
           ctx.beginPath();
@@ -860,8 +874,8 @@
 
       } else {
         // 1.5 ~ 0.5 is the right part of a circle.
-        var startAngle = 1.5 * Math.PI;
-        var endAngle = 0.5 * Math.PI;
+        startAngle = 1.5 * Math.PI;
+        endAngle = 0.5 * Math.PI;
         var strokeStyle = this.track.color;
 
         ctx.fillStyle = this.track.backgroundColor;
@@ -917,7 +931,6 @@
       }
       var isLeft = counterclock;
 
-      var isLeft = counterclock;
       var isRight = offset - center.x > 0;
 
       if (isLeft) {
@@ -994,6 +1007,7 @@
       } else { // old style
         var fillColor;
         var strokeColor;
+        var borderAlpha;
         // If user move over 15px, fill the slide.
         if (urw > 15 && true !== this.states.slidingColorful) {
           // The color should be gradient in this length, from the origin.
@@ -1007,7 +1021,7 @@
 
           // The border must disappear during the sliding,
           // so it's alpha would decrease to zero.
-          var borderAlpha = 1.0 - fillAlpha;
+          borderAlpha = 1.0 - fillAlpha;
 
           // From white to covered color.
           strokeStyle = 'rgba(' + this.handle.touchedColorStop +
@@ -1029,7 +1043,7 @@
             strokeColor = this.handle.touchedColorStop;
             fillColor = this.handle.touchedColor;
           }
-          var borderAlpha = 1.0 - fillAlpha;
+          borderAlpha = 1.0 - fillAlpha;
           strokeStyle = 'rgba(' + strokeColor + ',' + borderAlpha + ')';
         }
         ctx.fillStyle = 'rgba(' + fillColor + ',' + fillAlpha + ')';
@@ -1067,8 +1081,9 @@
    */
   LockScreenSlidePrototype._drawIconBG =
     function lss_dibg() {
-      if (!this.useNewStyle)
+      if (!this.useNewStyle) {
         return;
+      }
 
       var canvas = this.canvas;
       var ctx = canvas.getContext('2d');
@@ -1145,7 +1160,6 @@
     function lss_restoreArrows() {
       var canvas = this.canvas;
       var ctx = canvas.getContext('2d');
-      var center = this.center;
       ctx.drawImage(this.arrows.left,
           this.arrows.ldraw.x,
           this.arrows.ldraw.y,
@@ -1167,7 +1181,6 @@
     function lss_resetHandle() {
       this.states.slidingColorful = false;
       this.states.slidingColorGradientEnd = false;
-      var canvas = this.canvas;
       var centerx = this.center.x;
       this._drawSlideTo(centerx);
     };

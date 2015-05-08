@@ -4,6 +4,7 @@
   // container for icc instances
   var iccs = {};
   var iccIds = [];
+  var timeouts = [];
 
   var MockIccManager = {
     _eventListeners: {},
@@ -71,7 +72,6 @@
       object.setCardLock = function(options) {
         var handlers = {
           error: {
-            lockType: options.lockType,
             retryCount: object.retryCount
           }
         };
@@ -84,40 +84,63 @@
 
       object.getCardLock = function(type) {
         object._getCardLockType = type;
-        var obj = {
-          onsuccess: null,
-          result: {
-            enabled: true
+        var req = {};
+
+        timeouts.push(setTimeout(function() {
+          req.result = { enabled: true };
+          if (req.onsuccess) {
+            req.onsuccess();
           }
-        };
-        setTimeout(function() {
-          if (obj.onsuccess) {
-            obj.onsuccess();
-          }
-        });
-        return obj;
+        }));
+        return req;
       };
 
       object.getCardLockRetryCount = function(type) {
-        var req = {
-          result: { retryCount: 3 }
-        };
-        setTimeout(function() {
-          req.onsuccess && req.onsuccess();
-        });
+        var req = {};
+
+        timeouts.push(setTimeout(function() {
+          if (req.onsuccess) {
+            req.result = { retryCount: 3 };
+            req.onsuccess && req.onsuccess();
+          }
+        }));
         return req;
       };
 
       object.unlockCardLock = function(options) {
-        var req = {
-          // fires success handler immediately
-          set onsuccess(handler) {
-            return handler();
-          },
-          get onsuccess() {
-            return function() {};
-          }
-        };
+        var pin;
+        if (typeof options.pin !== 'undefined') {
+          pin = options.pin;
+        } else if (typeof options.puk !== 'undefined') {
+          pin = options.puk;
+        }
+
+        // Fail sim unlock for 0000/00000000 pins/puks/xcks.
+        var req;
+        if (parseInt(pin, 10) !== 0) {
+          req = {
+            // fires success handler immediately
+            set onsuccess(handler) {
+              return handler();
+            },
+            get onsuccess() {
+              return function() {};
+            }
+          };
+        } else {
+          req = {
+            error: {
+              retryCount: object.retryCount
+            },
+            // fires onerror handler immediately
+            set onerror(handler) {
+              return handler();
+            },
+            get onerror() {
+              return function() {};
+            }
+          };
+        }
         return req;
       };
 
@@ -159,12 +182,15 @@
 
       object.sendStkResponse = function() {};
       object.sendStkMenuSelection = function() {};
+      object.sendStkEventDownload = function() {};
 
       return object;
     },
     mTeardown: function iccm_teardown() {
       iccIds = [];
       iccs = {};
+      timeouts.forEach(clearTimeout);
+      timeouts = [];
     },
 
     // STK Constants

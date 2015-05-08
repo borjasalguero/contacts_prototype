@@ -5,6 +5,7 @@
 /* global LazyLoader */
 /* global Normalizer */
 /* global utils */
+/* global HtmlHelper */
 
 
 var contacts = window.contacts || {};
@@ -40,8 +41,7 @@ contacts.Search = (function() {
       imgLoader,
       searchEnabled = false,
       source = null,
-      navigationController = null,
-      highlightClass = 'highlight';
+      navigationController = null;
 
   // The _source argument should be an adapter object that provides access
   // to the contact nodes in the app.  This is done by defining the following
@@ -127,17 +127,20 @@ contacts.Search = (function() {
       blurList = false;
     });
 
-    imgLoader = new ImageLoader('#groups-list-search', 'li');
-    LazyLoader.load(['/contacts/js/fb_resolver.js'], function() {
+    LazyLoader.load([
+      '/contacts/js/fb_resolver.js',
+      '/shared/js/contacts/utilities/image_loader.js'
+    ], function() {
+      imgLoader = new ImageLoader('#groups-list-search', 'li');
       imgLoader.setResolver(fb.resolver);
     });
   };
 
   var clearHighlights = function(node) {
-    // We travers the DOM tree and remove highlighting spans.
+    // We traverse the DOM tree and remove highlighting marks.
     // getElements instead of querySelector here because of
     // performance.
-    var highlights = node.getElementsByClassName(highlightClass);
+    var highlights = node.getElementsByTagName('mark');
     while(highlights.length) {
       var parent = highlights[0].parentNode;
       while(highlights[0].firstChild) {
@@ -150,32 +153,57 @@ contacts.Search = (function() {
     }
   };
 
+  /**
+   * Given a contact DOM node, this function highlights the search terms it
+   * contains. First, it extract the text contents, highlights every chunk and
+   * then rebuild the content of the node respecting the location of the
+   * <strong> tag. To know where every chunk starts and ends, we use the
+   * locateHTMLTag so we know what we have to highlight.
+   *
+   * Highlighting is done in the createHighlightHTML() function inside the
+   * HtmlHelper module.
+   */
   var highlightNode = function(node) {
-    var normalizedText = getSearchText(node);
-    var displayedText = node.querySelector('.contact-text').textContent;
-
-    currentSearchTerms.forEach(function(term) {
-      var hRegEx = new RegExp(term, 'gi');
-      var newTerms = [], newTerm;
-
-      var result = hRegEx.exec(normalizedText);
-      while (result) {
-        newTerm = displayedText.substr(result.index, term.length);
-        newTerm = Normalizer.escapeRegExp(newTerm).toLowerCase();
-        newTerms.push(newTerm);
-        result = hRegEx.exec(normalizedText);
+    function doHighlight(text) {
+      if (text === '' || text === ' ') {
+        return text;
       }
 
-      newTerms = newTerms.filter(function removeDuplicates(elem, pos) {
-        return newTerms.indexOf(elem) === pos;
-      });
+      return HtmlHelper.createHighlightHTML(text, currentSearchTerms);
+    }
 
-      newTerms.forEach(function replaceWithHighlight(term) {
-        node.innerHTML = node.innerHTML.replace(
-          new RegExp('(' + term + ')(?=[^>]*<)', 'gi'),
-          '<span class="' + highlightClass + '">$1</span>');
-      });
-    });
+    function locateHTMLTag(text) {
+      var tagLocation = [];
+      tagLocation.push(text.indexOf('<'));
+      tagLocation.push(text.indexOf('>', tagLocation[0]) + 1);
+      tagLocation.push(text.indexOf('<', tagLocation[1]));
+      tagLocation.push(text.indexOf('>', tagLocation[2]) + 1);
+      return tagLocation;
+    }
+
+    var textNode = node.querySelector('.contact-text bdi');
+    if (textNode === null) {
+      return;
+    }
+
+    var text = textNode.innerHTML;
+    var tagPos = locateHTMLTag(text);
+    var beforeTag = text.substring(0,         tagPos[0]);
+    var openTag   = text.substring(tagPos[0], tagPos[1]);
+    var inTag     = text.substring(tagPos[1], tagPos[2]);
+    var closeTag  = text.substring(tagPos[2], tagPos[3]);
+    var afterTag  = text.substring(tagPos[3]);
+    var realText = [beforeTag, inTag, afterTag];
+
+    if (tagPos[0] == -1) {
+      textNode.innerHTML = doHighlight(Normalizer.unescapeHTML(text));
+    } else {
+      for (var i = 0, len = realText.length; i < len; i++) {
+        realText[i] = doHighlight(Normalizer.unescapeHTML(realText[i]));
+      }
+      var result = [realText[0], openTag, realText[1], closeTag, realText[2]];
+      textNode.innerHTML = result.join('');
+    }
   };
 
   var updateSearchList = function updateSearchList(cb) {
@@ -349,7 +377,7 @@ contacts.Search = (function() {
     }
   };
 
-  function fillInitialSearchPage() {
+  function fillInitialSearchPage(done) {
     hideProgressResults();
 
     var startContact = source.getFirstNode();
@@ -371,7 +399,13 @@ contacts.Search = (function() {
 
     fillIdentityResults(startContact, numToFill);
 
-    imgLoader.reload();
+    if (typeof done === 'function') {
+      done();
+    }
+
+    if (imgLoader) {
+      imgLoader.reload();
+    }
   }
 
   function doSearch(contacts, from, searchText, pattern, state) {
@@ -388,6 +422,7 @@ contacts.Search = (function() {
     for (var c = from; c < end && c < contacts.length; c++) {
       var contact = contacts[c].node || contacts[c];
       var contactText = contacts[c].text || getSearchText(contacts[c]);
+      contactText = Normalizer.unescapeHTML(contactText);
       if (!checkContactMatch(currentSearchTerms, contactText)) {
         if (contact.dataset.uuid in currentSet) {
           searchList.removeChild(currentSet[contact.dataset.uuid]);
@@ -497,7 +532,7 @@ contacts.Search = (function() {
     // new nodes should show up in that search.
     for (var i = 0, n = nodes.length; i < n; ++i) {
       var node = nodes[i];
-      var nodeText = getSearchText(node);
+      var nodeText = Normalizer.unescapeHTML(getSearchText(node));
       if (!checkContactMatch(currentSearchTerms, nodeText)) {
         searchableNodes.push({
           node: node,
@@ -525,7 +560,7 @@ contacts.Search = (function() {
 
     if (thisSearchText.length === 0) {
       resetState();
-      window.setTimeout(fillInitialSearchPage, 0);
+      window.setTimeout(fillInitialSearchPage, 0, searchDoneCb);
     }
     else {
       showProgress();
@@ -647,9 +682,6 @@ contacts.Search = (function() {
     'isInSearchMode': isInSearchMode,
     'enableSearch': enableSearch,
     'selectRow': selectRow,
-    'updateSearchList': updateSearchList,
-    'getHighlightClass': function(){
-      return highlightClass;
-    }
+    'updateSearchList': updateSearchList
   };
 })();

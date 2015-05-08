@@ -9,13 +9,25 @@
     ignoreWaitingCall: function mba_ignoreWaitingCall() {},
     toggleCalls: function mba_toggleCalls() {},
     getConnectedDevices: function mba_getConnectedDevices() {},
+    getPairedDevices: function mba_getPairedDevices() {},
+    connect: function mba_connect() {},
     connectSco: function mba_connectSco() {},
     disconnectSco: function mba_disconnectSco() {},
     setPairingConfirmation: function mba_setPairingConfirmation() {},
     setPinCode: function mba_setPinCode() {},
     setPasskey: function mba_setPasskey() {},
+    confirmReceivingFile: function mba_confirmReceivingFile() {},
+    sendFile: function mba_sendFile() {},
+    stopSendingFile: function mba_stopSendingFile() {},
+    pair: function mba_pair() {},
+    isScoConnected: function mba_isScoConnected() {},
+    sendMediaMetaData: function mba_sendMediaMetaData() {},
+    sendMediaPlayStatus: function mba_sendMediaPlayStatus() {},
 
-    onscostatuschanged: null
+    onscostatuschanged: null,
+    onhfpstatuschanged: null,
+    ona2dpstatuschanged: null,
+    onrequestmediaplaystatus: null
   };
 
   var mEventListeners = [];
@@ -51,13 +63,13 @@
     });
   }
 
-
   window.MockMozBluetooth = {
     addEventListener: mmb_addEventListener,
     triggerEventListeners: mmb_triggerEventListeners,
     getDefaultAdapter: mmb_getDefaultAdapter,
     triggerOnGetAdapterSuccess: mmb_triggerOnGetAdapterSuccess,
-    ondisabled: function mmb_ondisabled() {}
+    ondisabled: function mmb_ondisabled() {},
+    enabled: true
   };
 
   window.MockBTAdapter = MockBTAdapter;

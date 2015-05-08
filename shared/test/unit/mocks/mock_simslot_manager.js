@@ -3,6 +3,9 @@
 var MockSIMSlotManager = {
   ready: false,
   mInstances: [],
+  get: function mssm_get(index) {
+    return this.mInstances[index];
+  },
   getSlots: function mssm_getSlots() {
     return this.mInstances;
   },
@@ -15,6 +18,7 @@ var MockSIMSlotManager = {
   isSIMCardAbsent: function mssm_isSIMCardAbsent(i) {
     return this.mInstances[i].isAbsent();
   },
+  hasOnlyOneSIMCardDetected: function() {},
   noSIMCardOnDevice: function() {},
   noSIMCardConnectedToNetwork: function() {},
   mTeardown: function mssm_mTeardown() {
