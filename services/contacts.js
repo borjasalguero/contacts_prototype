@@ -31,6 +31,7 @@ var service = threads.service('contacts-service')
 
     var cursor = navigator.mozContacts.getAll(options);
     cursor.onsuccess = function onsuccess(evt) {
+      // console.log('Tenemos un contacto en el servicio');
       var contact = evt.target.result;
       if (!contact) {
         stream.close();

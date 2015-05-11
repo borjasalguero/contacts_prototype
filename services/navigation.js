@@ -3,6 +3,7 @@ importScripts('../app/libs/components/threads/threads.js');
 var panels = {};
 var effect = '';
 var current, future;
+var contentWrapper;
 
 
 function getPanelByUUID(uuid) {
@@ -16,16 +17,6 @@ function getPanelByUUID(uuid) {
   return panelName;
 }
 
-function S4() {
-  return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-}
-
-function guuid() {
-  // then to call it, plus stitch in '4' in the third group
-  var guid = (S4() + S4() + "-" + S4() + "-4" + S4().substr(0,3) + "-" + S4() + "-" + S4() + S4() + S4()).toLowerCase();
-  return guid;
-}
-
 var service = threads.service('navigation-service')
   .method('goto', function(uuid, params, sync) {
     current = getPanelByUUID(uuid);
@@ -34,10 +25,12 @@ var service = threads.service('navigation-service')
 
     // I send all params to 'to' panel in order to render it
     // asap
-    service.broadcast('beforenavigating', {
-      uuid: panels[params.destination],
-      params: params.params
-    });
+    service.broadcast(
+      'beforenavigating', {
+        params: params.params
+      },
+      [panels[params.destination]]
+    );
 
     if (sync) {
       // TODO Add SYNC behaviour
@@ -50,17 +43,23 @@ var service = threads.service('navigation-service')
       from: current,
       to: future,
       effect: effect
-    });
+    },
+    [contentWrapper]);
   })
   .method('navigationend', function(uuid, params) {
-    service.broadcast('navigationend', {
-      uuid: panels[future],
-      previous: current
-    });
+    service.broadcast(
+      'navigationend',
+      {
+        previous: current
+      },
+      [panels[future]]
+    );
   })
   // Register every panel. 'alias' must be the ID of the panel
-  .method('register', function(alias) {
-    var uuid = guuid();
-    panels[alias] = uuid;
-    return uuid;
+  .method('register', function(url, uuid) {
+    panels[url] = uuid;
+  })
+  // Register content wrapper. This will be in charge of all transitions.
+  .method('registerContentWrapper', function(uuid) {
+    contentWrapper = uuid;
   });

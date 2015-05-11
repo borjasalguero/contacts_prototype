@@ -1,28 +1,28 @@
-
 'use strict';
 
 /**
  * Dependencies
  */
 
-var ServiceStream = require('./service-stream');
-var thread = require('./thread-global');
-var utils = require('./utils');
+var thread = require('../thread-global');
+var Messenger = require('../messenger');
+var ServiceStream = require('./stream');
+var utils = require('../utils');
 
 /**
  * exports
  */
 
-module.exports = Service;
-// expose stream just so we can unit test it
-module.exports.Stream = ServiceStream;
+exports = module.exports = Service;
+exports.Stream = ServiceStream; // for testing
 
 /**
  * Mini Logger
  *
  * @type {Function}
  */
-var debug = 0 ? console.log.bind(console, '[service]') : function(){};
+
+var debug = 0 ? console.log.bind(console, '[Service]') : function(){};
 
 /**
  * Global broadcast channel that
@@ -31,41 +31,20 @@ var debug = 0 ? console.log.bind(console, '[service]') : function(){};
  *
  * @type {BroadcastChannel}
  */
+
 var manager = new BroadcastChannel('threadsmanager');
-
-/**
- * Known request types.
- *
- * @type {Array}
- */
-const REQUEST_TYPES = [
-  'stream',
-  'streamcancel',
-  'method',
-  'disconnect'
-];
-
-/**
- * Possible errors.
- *
- * @type {Object}
- */
-const ERRORS = {
-  1: 'method not defined in the contract',
-  2: 'arguments.length doesn\'t match contract',
-  3: 'unknown request type',
-  4: 'method doesn\'t exist',
-  5: 'arguments types don\'t match contract'
-};
 
 /**
  * Initialize a new `Service`
  *
  * @param {String} name
  */
+
 function Service(name) {
   if (!(this instanceof Service)) return new Service(name);
-  this.private = new ServicePrivate(this, name);
+  this.name = name;
+  this.private = new ServicePrivate(this);
+  debug('initialized', this.name);
 }
 
 /**
@@ -75,6 +54,7 @@ function Service(name) {
  * @param {String} name Method name
  * @param {Function} fn Implementation
  */
+
 Service.prototype.method = function(name, fn) {
   this.private.addMethod(name, fn);
   return this;
@@ -86,6 +66,7 @@ Service.prototype.method = function(name, fn) {
  * @param {String} name Method name
  * @param {Function} fn Implementation
  */
+
 Service.prototype.stream = function(name, fn) {
   this.private.addStream(name, fn);
   return this;
@@ -97,6 +78,7 @@ Service.prototype.stream = function(name, fn) {
  *
  * @param {Object} contract
  */
+
 Service.prototype.contract = function(contract) {
   this.private.setContract(contract);
   return this;
@@ -108,8 +90,9 @@ Service.prototype.contract = function(contract) {
  * @param {String} type Event name.
  * @param {*} data Payload to be transmitted.
  */
-Service.prototype.broadcast = function(type, data) {
-  this.private.broadcast(type, data);
+
+Service.prototype.broadcast = function(type, data, clients) {
+  this.private.broadcast(type, data, clients);
   return this;
 };
 
@@ -121,25 +104,25 @@ Service.prototype.broadcast = function(type, data) {
  * @param {Service} service
  * @param {String} name
  */
-function ServicePrivate(service, name) {
-  debug('initialize', name);
+
+function ServicePrivate(service) {
+  debug('initialize', service);
 
   this.public = service;
+  this.name = service.name;
   this.id = utils.uuid();
-  this.name = name;
   this.contract = null;
   this.methods = {};
   this.channels = {};
   this.streams = {};
   this.activeStreams = {};
 
-  // Create a message factory that outputs
-  // messages in a standardized format.
-  this.message = new utils.Messages(this, this.id, [
-    'connect',
-    'disconnected',
-    'request'
-  ]);
+  this.messenger = new Messenger(this.id, '[Service]')
+    .handle('connect', this.onconnect, this)
+    .handle('stream', this.onstream, this)
+    .handle('streamcancel', this.onstreamcancel, this)
+    .handle('method', this.onmethod, this)
+    .handle('disconnect', this.ondisconnect, this);
 
   this.listen();
 
@@ -150,46 +133,8 @@ function ServicePrivate(service, name) {
   // If we broadcast the 'serviceready'
   // event before the thread-parent has
   // 'connected', it won't be heard.
-  setTimeout(function() { this.ready(); }.bind(this));
-  debug('initialized', this.name);
+  setTimeout(this.ready.bind(this));
 }
-
-/**
- * Call the corresponding method and
- * respond with a 'serialized' promise.
- *
- * @param  {Object} request
- */
-ServicePrivate.prototype.onrequest = function(request) {
-  debug('on request', request);
-  var type = request.type;
-  var data = request.data;
-  var self = this;
-
-  // Check to insure this is a known request type
-  if (!~REQUEST_TYPES.indexOf(type)) return reject(ERRORS[3]);
-
-  // Call the handler and make
-  // sure return value is a promise
-  Promise.resolve()
-    .then(function() { return this['on' + type](data, request); }.bind(this))
-    .then(resolve, reject);
-
-  function resolve(value) {
-    self.respond(request, {
-      state: 'fulfilled',
-      value: value
-    });
-  }
-
-  function reject(err) {
-    debug('reject', err);
-    self.respond(request, {
-      state: 'rejected',
-      reason: err.message || err
-    });
-  }
-};
 
 /**
  * Called when a client calls
@@ -198,12 +143,15 @@ ServicePrivate.prototype.onrequest = function(request) {
  * @param  {Object} method
  * @return {*}
  */
-ServicePrivate.prototype.onmethod = function(method) {
-  debug('method', method.name);
+
+ServicePrivate.prototype.onmethod = function(request) {
+  debug('method', request.data);
+  var method = request.data;
   var fn = this.methods[method.name];
-  if (!fn) throw new Error(ERRORS[4]);
+  if (!fn) throw error(4, method.name);
   this.checkMethodCall(method);
-  return fn.apply(this.public, method.args);
+  var result = fn.apply(this.public, method.args);
+  request.respond(result);
 };
 
 /**
@@ -214,24 +162,33 @@ ServicePrivate.prototype.onmethod = function(method) {
  * @param {String} method.id Stream Id, used to sync client and service streams
  * @param {Object} request Request object
  */
-ServicePrivate.prototype.onstream = function(method, request) {
-  debug('stream', method.name);
-  var fn = this.streams[method.name];
-  if (!fn) throw new Error(ERRORS[4]);
 
-  var id = method.id;
+ServicePrivate.prototype.onstream = function(request) {
+  debug('stream', request.data);
+  var data = request.data;
+  var fn = this.streams[data.name];
+  var client = request.sender;
+
+  if (!fn) throw error(6, data.name);
+
+  var id = data.id;
   var stream = new ServiceStream({
     id: id,
-    channel: this.channels[request.client],
+    channel: this.channels[client],
     serviceId: this.id,
-    clientId: request.client
+    clientId: client
   });
+
   this.activeStreams[id] = stream;
 
-  // always pass stream object as first argument to simplify the process
-  fn.apply(this.public, [stream].concat(method.args));
-  // stream doesn't return anything on purpose, we create another stream object
+  // always pass stream object as first
+  // argument to simplify the process
+  fn.apply(this.public, [stream].concat(data.args));
+
+  // stream doesn't return anything on purpose,
+  // we create another stream object
   // on the client during request
+  request.respond();
 };
 
 /**
@@ -241,30 +198,13 @@ ServicePrivate.prototype.onstream = function(method, request) {
  * @return {Promise}
  * @private
  */
-ServicePrivate.prototype.onstreamcancel = function(data) {
+
+ServicePrivate.prototype.onstreamcancel = function(request) {
+  var data = request.data;
   var id = data.id;
   var stream = this.activeStreams[id];
   delete this.activeStreams[id];
-  return stream._.cancel(data.reason);
-};
-
-/**
- * Respond to an unfulfilled
- * request from a client
- *
- * @param  {Object} request
- * @param  {*} result
- */
-ServicePrivate.prototype.respond = function(request, result) {
-  debug('respond', request.client, result);
-  var channel = this.channels[request.client];
-  channel.postMessage(this.message.create('response', {
-    recipient: request.client,
-    data: {
-      request: request,
-      result: result
-    }
-  }));
+  request.respond(stream._.cancel(data.reason));
 };
 
 /**
@@ -277,12 +217,10 @@ ServicePrivate.prototype.respond = function(request, result) {
  *
  * @private
  */
+
 ServicePrivate.prototype.ready = function() {
   debug('ready');
-  thread.broadcast('serviceready', {
-    id: this.id,
-    name: this.name
-  });
+  thread.serviceReady(this);
 };
 
 /**
@@ -298,37 +236,46 @@ ServicePrivate.prototype.ready = function() {
  *
  * @param  {Object} data
  */
-ServicePrivate.prototype.onconnect = function(data) {
+
+ServicePrivate.prototype.onconnect = function(request) {
+  var data = request.data;
   var client = data.client;
   var contract = data.contract;
   var service = data.service;
 
   if (!client) return;
   if (service !== this.name) return;
-  debug('on connect', this.id, data);
   if (this.channels[client]) return;
 
+  debug('on connect', this.id, data);
   var channel = new BroadcastChannel(client);
-  channel.onmessage = this.message.handle;
+  channel.onmessage = this.messenger.parse;
   this.channels[client] = channel;
 
   this.setContract(contract);
-
-  channel.postMessage(this.message.create('connected', {
-    recipient: client,
-    data: {
-      id: this.id,
-      name: this.name
-    }
-  }));
-
   thread.connection('inbound');
   debug('connected', client);
+
+  request.respond({
+    id: this.id,
+    name: this.name
+  });
 };
 
+/**
+ * Responds to `Client` request to disconnect.
+ *
+ * All the cleanup is done after we have
+ * sent the response as we need the
+ * channel to send the message back.
+ *
+ * @param  {Request} request
+ */
 
-ServicePrivate.prototype.ondisconnect = function(client) {
-  if (!client) return;
+ServicePrivate.prototype.ondisconnect = function(request) {
+  var client = request.data;
+
+  // Check `Client` is known
   if (!this.channels[client]) return;
   debug('on disconnect', client);
 
@@ -336,16 +283,17 @@ ServicePrivate.prototype.ondisconnect = function(client) {
 
   // TODO: Check there are no requests/methods
   // pending for this client, before disconnecting.
+
   deferred.resolve();
 
-  thread.disconnection('inbound');
-  return deferred.promise;
-};
-
-ServicePrivate.prototype.ondisconnected = function(client) {
-  debug('disconnected', client);
-  this.channels[client].close();
-  delete this.channels[client];
+  deferred.promise.then(function() {
+    return request.respond();
+  }).then(function() {
+    debug('disconnected', client);
+    this.channels[client].close();
+    delete this.channels[client];
+    thread.disconnection('inbound');
+  }.bind(this));
 };
 
 ServicePrivate.prototype.setContract = function(contract) {
@@ -366,6 +314,7 @@ ServicePrivate.prototype.setContract = function(contract) {
  * @param {String}   name
  * @param {Function} fn
  */
+
 ServicePrivate.prototype.addMethod = function(name, fn) {
   this.methods[name] = fn;
 };
@@ -377,6 +326,7 @@ ServicePrivate.prototype.addMethod = function(name, fn) {
  * @param {String}   name
  * @param {Function} fn
  */
+
 ServicePrivate.prototype.addStream = function(name, fn) {
   this.streams[name] = fn;
 };
@@ -390,6 +340,7 @@ ServicePrivate.prototype.addStream = function(name, fn) {
  *
  * @param  {Object} method
  */
+
 ServicePrivate.prototype.checkMethodCall = function(method) {
   debug('check method call', method);
 
@@ -401,11 +352,11 @@ ServicePrivate.prototype.checkMethodCall = function(method) {
   var signature = this.contract.methods[name];
   var e;
 
-  if (!signature) e = ERRORS[1];
-  else if (args.length !== signature.length) e = ERRORS[2];
-  else if (!utils.typesMatch(args, signature)) e = ERRORS[5];
+  if (!signature) e = error(1, name);
+  else if (args.length !== signature.length) e = error(2, name, signature.length);
+  else if (!utils.typesMatch(args, signature)) e = error(5);
 
-  if (e) throw new Error(e);
+  if (e) throw e;
 };
 
 /**
@@ -417,9 +368,10 @@ ServicePrivate.prototype.checkMethodCall = function(method) {
  *
  * @private
  */
+
 ServicePrivate.prototype.listen = function() {
-  manager.addEventListener('message', this.message.handle);
-  thread.on('message', this.message.handle);
+  manager.addEventListener('message', this.messenger.parse);
+  thread.on('message', this.messenger.parse);
 };
 
 /**
@@ -428,16 +380,37 @@ ServicePrivate.prototype.listen = function() {
  *
  * @param  {String} type
  * @param  {*} data to pass with the event
+ * @param  {Array} (optional) array of client-ids to target
  */
-ServicePrivate.prototype.broadcast = function(type, data) {
+
+ServicePrivate.prototype.broadcast = function(type, data, clients) {
   debug('broadcast', type, data);
   for (var client in this.channels) {
-    this.channels[client].postMessage(this.message.create('broadcast', {
+    if (clients && !~clients.indexOf(client)) continue;
+    this.messenger.push(this.channels[client], {
+      type: 'broadcast',
       recipient: client,
       data: {
         type: type,
         data: data
       }
-    }));
+    });
   }
 };
+
+/**
+ * Utils
+ */
+
+function error(id) {
+  /*jshint maxlen:false*/
+  var args = [].slice.call(arguments, 1);
+  return new Error({
+    1: 'method "' + args[0] + '" not defined in the contract',
+    2: 'expected method " ' + args[0] + '" to be called with ' + args[1]+ ' arguments',
+    3: 'unknown request type: "' + args[0] + '"',
+    4: 'method "' + args[0] + '" doesn\'t exist',
+    5: 'arguments types don\'t match contract',
+    6: 'stream "' + args[0] + '" doesn\'t exist',
+  }[id]);
+}
