@@ -155,10 +155,11 @@ var ContactsButtons = {
   },
 
   renderEmails: function cd_renderEmails(contact) {
+    console.info(contact);
     if (!contact.email) {
       return;
     }
-    var emailLength = Contacts.getLength(contact.email);
+    var emailLength = this.getLength(contact.email);
     for (var email = 0; email < emailLength; email++) {
       var currentEmail = contact.email[email];
       var escapedType = Normalizer.escapeHTML(currentEmail.type, true);

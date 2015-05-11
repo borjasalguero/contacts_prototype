@@ -501,6 +501,29 @@ contacts.Details = (function() {
     });
   };
 
+  // Checks if an object fields are empty, by empty means
+  // field is null and if it's an array it's length is 0
+  var isEmpty = function isEmpty(obj, fields) {
+    if (obj == null || typeof(obj) != 'object' ||
+        !fields || !fields.length) {
+      return true;
+    }
+    var attr;
+    for (var i = 0; i < fields.length; i++) {
+      attr = fields[i];
+      if (obj[attr]) {
+        if (Array.isArray(obj[attr])) {
+          if (obj[attr].length > 0) {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
   var renderAddresses = function cd_renderAddresses(contact) {
     if (!contact.adr) {
       return;
@@ -508,7 +531,7 @@ contacts.Details = (function() {
     for (var i = 0; i < contact.adr.length; i++) {
       var currentAddress = contact.adr[i];
       // Sanity check
-      if (Contacts.isEmpty(currentAddress, ['streetAddress', 'postalCode',
+      if (isEmpty(currentAddress, ['streetAddress', 'postalCode',
         'locality', 'countryName'])) {
         continue;
       }
