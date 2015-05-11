@@ -92,21 +92,42 @@ var ContactsButtons = {
     SmsIntegration.sendSms(target);
   },
 
+  /////////////Contacts.js/////////////////////
+
+  sendEmailOrPick: function sendEmailOrPick(address) {
+    try {
+      // We don't check the email format, lets the email
+      // app do that
+      new MozActivity({
+        name: 'new',
+        data: {
+          type: 'mail',
+          URI: 'mailto:' + address
+        }
+      });
+    } catch (e) {
+      console.error('WebActivities unavailable? : ' + e);
+    }
+  },
+
+  /////////////Contacts.js/////////////////////
+
   _onEmailOrPickClick: function onEmailOrPickClick(evt) {
     evt.preventDefault();
     var email = evt.target.dataset.email;
-    Contacts.sendEmailOrPick(email);
+    this.sendEmailOrPick(email);
     return false;
   },
 
-  ///////////////////////////////////7777
+  /////////////Contacts.js/////////////////////
+  
   getLength: function getLength(prop) {
     if (!prop || !prop.length) {
       return 0;
     }
     return prop.length;
   },
-  ///////////////////////////////////777
+  /////////////Contacts.js/////////////////////
 
   renderPhones: function cd_renderPhones(contact) {
     if (!contact.tel) {
@@ -155,7 +176,6 @@ var ContactsButtons = {
   },
 
   renderEmails: function cd_renderEmails(contact) {
-    console.info(contact);
     if (!contact.email) {
       return;
     }

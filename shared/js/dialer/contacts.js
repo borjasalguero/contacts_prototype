@@ -1,12 +1,7 @@
+/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- /
+/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
+
 'use strict';
-/* global
-  asyncStorage,
-  fb,
-  LazyLoader,
-  MozActivity,
-  SimplePhoneMatcher
-*/
-/* exported Contacts */
 
 var Contacts = {
 
@@ -245,7 +240,6 @@ var Contacts = {
   },
 
   sendEmailOrPick: function sendEmailOrPick(address) {
-    /* jshint nonew: false */
     try {
       // We don't check the email format, lets the email
       // app do that

@@ -360,7 +360,7 @@ contacts.Details = (function() {
            and if the Contact is edited we need to prevent saving
            FB data on the mozContacts DB.
         */
-         cList.getContactById(contact.id,
+         getContactById(contact.id,
                              function onSuccess(savedContact, enrichedContact) {
           renderFavorite(savedContact);
           setContact(savedContact);
@@ -382,6 +382,46 @@ contacts.Details = (function() {
 
     return promise;
   };
+
+  ///////////////////list.js///////////////////////////
+
+  var getContactById = function(contactID, successCb, errorCb) {
+    if (!contactID) {
+      successCb();
+      return;
+    }
+
+    var options = {
+      filterBy: ['id'],
+      filterOp: 'equals',
+      filterValue: contactID
+    };
+    var request = navigator.mozContacts.find(options);
+
+    request.onsuccess = function findCallback(e) {
+      var result = e.target.result[0];
+      successCb(result, null);
+      /*
+      if (!fb.isFbContact(result)) {
+        successCb(result);
+        return;
+      }
+
+      var fbContact = new fb.Contact(result);
+      var fbReq = fbContact.getData();
+      fbReq.onsuccess = function() {
+        successCb(result, fbReq.result);
+      };
+      fbReq.onerror = successCb.bind(null, result);
+      */
+    }; // request.onsuccess
+
+    if (typeof errorCb === 'function') {
+      request.onerror = errorCb;
+    }
+  };
+
+  ///////////////////list.js///////////////////////////
 
   var toggleFavoriteMessage = function toggleFavMessage(isFav) {
     var cList = favoriteMessage.classList;

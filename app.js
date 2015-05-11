@@ -2,7 +2,7 @@ var dependencies = [
  '/contacts/js/activities.js',
  '/shared/js/contacts/utilities/event_listeners.js',
  //'/contacts/js/navigation.js',
- '/contacts/js/views/list.js'
+ //'/contacts/js/views/list.js'
 ];
 
 // If the cache is enabled, we push lazy loading l10n to the extreme,
@@ -16,13 +16,14 @@ if (!Cache.active) {
 }
 
 LazyLoader.load(dependencies, () => {
-  ['/shared/js/async_storage.js',
-   '/shared/js/contacts/import/utilities/config.js',
-   '/contacts/js/utilities/extract_params.js',
-   '/contacts/js/utilities/cookie.js',
+  [//'/shared/js/async_storage.js',
+   //'/shared/js/contacts/import/utilities/config.js',
+   //'/contacts/js/utilities/extract_params.js',
+   //'/contacts/js/utilities/cookie.js',
    '/shared/js/contact_photo_helper.js',
    '/shared/js/text_normalizer.js',
-   '/shared/js/contacts/utilities/templates.js'].forEach((src) => {
+   '/shared/js/contacts/utilities/templates.js'
+   ].forEach((src) => {
     var scriptNode = document.createElement('script');
     scriptNode.src = src;
     scriptNode.setAttribute('defer', true);
@@ -30,8 +31,6 @@ LazyLoader.load(dependencies, () => {
   });
   //return LazyLoader.load('/contacts/js/contacts.js');
 });
-
-///////////////////////////////////////////
 
 var contactsDetails = null;
 
@@ -81,7 +80,7 @@ LazyLoader.load(['/contacts/js/views/details.js'], function() {
   });
 });
 
-//////////////////////////////////////////////
+///////////////////list.js///////////////////////////
 
 var getContactById = function(contactID, successCb, errorCb) {
   if (!contactID) {
@@ -118,3 +117,5 @@ var getContactById = function(contactID, successCb, errorCb) {
     request.onerror = errorCb;
   }
 };
+
+///////////////////list.js///////////////////////////
