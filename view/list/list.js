@@ -1,3 +1,17 @@
+var isFirstContact = true;
+var contactsService;
+var renderCount = 0;
+var maxRenders = 3;
+var colors = ['#00AACC', '#FF4E00', '#B90000', '#5F9B0A', '#4D4D4D'];
+var colorIndex = 0;
+// We will cache our UUID in order to establish the communication channel
+var _uuid;
+// Element clicked must be cached for animations
+var element;
+
+var ul;
+var settingsButton;
+
 
 // Method for retrieving the position of the element taking as a reference
 // the whole document (scroll included)
@@ -14,51 +28,89 @@ function getOffset( el ) {
     return { top: _y, left: _x };
 }
 
-var colors = ['#00AACC', '#FF4E00', '#B90000', '#5F9B0A', '#4D4D4D'];
-var colorIndex = 0;
-// We will cache our UUID in order to establish the communication channel
-var _uuid;
-// Element clicked must be cached for animations
-var element;
-
-var ul;
-var settingsButton;
-window.onload = function() {
-  ul = document.querySelector('ul');
-  settingsButton = document.getElementById('settings-button');
+function renderContacts(renderCB, onRenderedCB) {
   ul.innerHTML = '';
-
+  performance.mark('request_all_' + renderCount);
   // Contacts service
-  var contactsService = threads.client('contacts-service');
+  if (!contactsService) {
+    contactsService = threads.client('contacts-service');
+  }
+
+
   var stream = contactsService.stream('getAll');
+
   // Called every time the service sends a contact
   stream.listen(function(data) {
     var contact = JSON.parse(data.contact);
-    var li = document.createElement('li');
-    var name = contact.givenName[0];
-    if (data.photo && data.photo.length > 0) {
-      var url = URL.createObjectURL(data.photo[0]);
-      li.innerHTML = '<div data-contact="' + contact.id + '" data-url="' + url + '" class="background-image" style="background-image:url(' + url + ');">' + name.charAt(0) + '</div>';
-    } else {
-      li.innerHTML = '<div data-contact="' + contact.id + '" data-color="' + colors[colorIndex] + '">' + name.charAt(0) + '</div>';
-      li.querySelector('div').style["background-color"] = colors[colorIndex];
-      if (++colorIndex === colors.length -1) {
-        colorIndex = 0;
-      }
+    if (isFirstContact) {
+      performance.mark('first_contact_' + renderCount);
+      isFirstContact = false;
     }
-
-    setTimeout(function() {
-      ul.appendChild(li);
-    });
+    renderCB(data, contact);
   });
 
   // "closed" is a Promise that will be fullfilled when stream is closed with
   // success or rejected when the service "abort" the operation
   stream.closed.then(function onStreamClose() {
     /// TODO Use if needed
+    onRenderedCB();
   }, function onStreamAbort() {
     console.log('ERROR: Stream aborted');
   });
+}
+
+
+function renderContact(data, contact) {
+  var li = document.createElement('li');
+  var name = contact.givenName[0];
+  if (data.photo && data.photo.length > 0) {
+    var url = URL.createObjectURL(data.photo[0]);
+    li.innerHTML = '<div data-contact="' + contact.id + '" data-url="' + url + '" class="background-image" style="background-image:url(' + url + ');">' + name.charAt(0) + '</div>';
+  } else {
+    li.innerHTML = '<div data-contact="' + contact.id + '" data-color="' + colors[colorIndex] + '">' + name.charAt(0) + '</div>';
+    li.querySelector('div').style["background-color"] = colors[colorIndex];
+    if (++colorIndex === colors.length -1) {
+      colorIndex = 0;
+    }
+  }
+
+  setTimeout(function() {
+    ul.appendChild(li);
+  });
+}
+
+
+function calcPerformance() {
+  isFirstContact = true;
+  performance.mark('contacts_rendered_' + renderCount);
+  performance.measure('first_rendered_' + renderCount, 'request_all_' + renderCount, 'first_contact_' + renderCount);
+  performance.measure('all_rendered_' + renderCount, 'request_all_' + renderCount, 'contacts_rendered_' + renderCount);
+
+  if (++renderCount < maxRenders) {
+    renderContacts(
+      renderContact,
+      calcPerformance
+    );
+  } else {
+    var measures = performance.getEntriesByType('measure');
+
+    for (var i = 0; i < measures.length; i++) {
+      if (i%2 === 0) {
+        console.log('* Performance during the round ' + i/2 + ' *');
+      }
+      console.log('Performance: Measure "' + measures[i].name +'" was ' + measures[i].duration);
+    }
+  }
+}
+
+window.onload = function() {
+  ul = document.querySelector('ul');
+  settingsButton = document.getElementById('settings-button');
+
+  renderContacts(
+    renderContact,
+    calcPerformance
+  );
 
 
 

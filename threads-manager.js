@@ -7,6 +7,7 @@ threads.manager({
   },
   'contacts-service': {
     src: 'services/contacts.html',
-    type: 'window'
+    type: 'window',
+    target: document.querySelector('#contacts-service')
   }
 });
