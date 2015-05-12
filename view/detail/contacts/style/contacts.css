@@ -9,7 +9,7 @@
 .favorite-indicator {
   display: none;
 
-  background: url(../../contacts/style/gphx/bitmap/default/vw-header/icons/fav-star.png) no-repeat center / 3rem;
+  background: url(/contacts/style/gphx/bitmap/default/vw-header/icons/fav-star.png) no-repeat center / 3rem;
   padding: 0 1rem;
 }
 
@@ -18,7 +18,7 @@
 }
 
 section[role="region"] > gaia-header .icon.icon-edit-contact {
-  background-image: url(./view/detail/contacts/style/images/edit-contact.png);
+  background-image: url(images/edit-contact.png);
 }
 
 .contact-header img {

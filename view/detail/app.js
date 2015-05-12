@@ -1,8 +1,6 @@
 var dependencies = [
  './contacts/js/activities.js',
- './shared/js/contacts/utilities/event_listeners.js',
- //'/contacts/js/navigation.js',
- //'/contacts/js/views/list.js'
+ './shared/js/contacts/utilities/event_listeners.js'
 ];
 
 // If the cache is enabled, we push lazy loading l10n to the extreme,
@@ -16,11 +14,7 @@ if (!Cache.active) {
 }
 
 LazyLoader.load(dependencies, () => {
-  [//'/shared/js/async_storage.js',
-   //'/shared/js/contacts/import/utilities/config.js',
-   //'/contacts/js/utilities/extract_params.js',
-   //'/contacts/js/utilities/cookie.js',
-   './shared/js/contact_photo_helper.js',
+  ['./shared/js/contact_photo_helper.js',
    './shared/js/text_normalizer.js',
    './shared/js/contacts/utilities/templates.js'
    ].forEach((src) => {
@@ -45,7 +39,6 @@ function loadContact(contact){
   LazyLoader.load(['./contacts/js/views/details.js'], function() {
     LazyLoader.load(
       [SHARED_UTILS_PATH + '/misc.js',
-       //'/dialer/js/telephony_helper.js',
        './shared/js/contacts/sms_integration.js',
        './shared/js/contacts/utilities/dom.js',
        './shared/js/contacts/contacts_buttons.js'],
@@ -61,7 +54,6 @@ function loadContact(contact){
       */
 
       var currentContact = contact;
-      console.info(currentContact);
       var currentFbContact = null;
 
       if (ActivityHandler.currentActivityIsNot(['import'])) {

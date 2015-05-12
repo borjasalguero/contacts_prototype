@@ -108,7 +108,6 @@ contacts.Details = (function() {
 
   var handleDetailsBack = function handleDetailsBack() {
     // disable NFC listeners if NFC is available
-    console.info("aaaaaaaaaaa");
     if ('mozNfc' in navigator) {
       contacts.NFC.stopListening();
     }
@@ -210,7 +209,6 @@ contacts.Details = (function() {
 
   // readOnly tells us if we should allow editing the rendered contact.
   var render = function cd_render(currentContact, fbContactData, readOnly) {
-    console.info("here3");
     if(isAFavoriteChange){
       isAFavoriteChange = false;
       return Promise.resolve(isAFavoriteChange);
