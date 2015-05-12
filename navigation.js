@@ -39,9 +39,6 @@
           reject(new Error('ERROR Navigation.go: No mirrors found in HTML'));
           return;
         }
-        // // Use debug if requested
-        // document.body.dataset.uidebug = Config.debug;
-
         // Show panels we want to 'mirror'. All panels are hidden in order to
         // improve performance.
         fromPanel.classList.add('show');
@@ -62,6 +59,7 @@
         // Add listeners in order to remove the mirror and show the final panel
         _mirrorCurrent.addEventListener('transitionend', function transitionEnded() {
           _mirrorCurrent.removeEventListener('transitionend', transitionEnded);
+
           // Keep 'to' panel as main one (the one will be shown after the transition)
           fromPanel.classList.remove('main');
           _setMainPanel(toPanel);
@@ -81,7 +79,6 @@
 
           // Resolve the promise when the transition is done
           resolve();
-
         });
 
         // XXXX Hack for smooth transitions

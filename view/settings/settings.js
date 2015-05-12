@@ -7,7 +7,7 @@ window.onload = function() {
 
   _uuid = navigation.id;
 
-  navigation.method('register', 'settings', _uuid);
+  navigation.method('register', 'view/settings/index.html', _uuid);
 
   navigation.on('beforenavigating', function(params) {
    	// TODO Currently we dont need anything, but it would be useful
@@ -22,7 +22,7 @@ window.onload = function() {
         'goto',
         _uuid,
         {
-          destination: 'list',
+          destination: 'view/list/index.html',
           effect: 'right'
         }
       );
