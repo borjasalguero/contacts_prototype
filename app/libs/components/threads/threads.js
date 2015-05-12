@@ -182,9 +182,12 @@ ChildThread.prototype.checkReady = function() {
 
   this.messenger.request(this, { type: 'ping' }).then(ready); // 1.
   this.messenger.handle('threadready', ready); // 2.
-
+  if (window) {
+    window.parent.performance.mark('child_thread_before_ready');
+  }
   function ready(thread) {
     if (called++) return;
+    window.parent.performance.mark('child_thread_ready');
     debug('thread ready', thread);
     self.messenger.unhandle('threadready');
     self.threadId = thread.id;
@@ -505,7 +508,9 @@ Client.prototype.connect = function() {
     ? this.connectViaThread()
     : this.connectViaManager();
 
+  window && window.parent.performance.mark('threads_before_connecting');
   return this.connected.then(function(service) {
+    window && window.parent.performance.mark('threads_client_connected');
     debug('connected', service);
     self.service.id = service.id;
     thread.connection('outbound');
@@ -1846,6 +1851,7 @@ ServicePrivate.prototype.ready = function() {
  */
 
 ServicePrivate.prototype.onconnect = function(request) {
+  window && window.parent.performance.mark('threads_connect');
   var data = request.data;
   var client = data.client;
   var contract = data.contract;
