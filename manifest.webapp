@@ -1,8 +1,8 @@
 {
-  "name": "Details prototype",
-  "description": "Details prototype",
-  "launch_path": "/details.html",
-  "type": "certified",
+  "name": "Contacts prototype",
+  "description": "Contacts prototype",
+  "launch_path": "/index.html",
+  "type": "privileged",
   "developer": {
     "name": "The Gaia Team",
     "url": "https://github.com/mozilla-b2g/gaia"
@@ -12,15 +12,14 @@
   },
   "locales": {
     "en-US": {
-      "name": "Details prototype",
-      "description": "Details prototype"
+      "name": "Contacts prototype",
+      "description": "Contacts prototype"
     },
     "es": {
-      "name": "Details prototype",
-      "description": "Details prototype"
+      "name": "Contacts prototype",
+      "description": "Contacts prototype"
     }
   },
   "default_locale": "en-US",
-  "orientation": "portrait",
-  "fullscreen": "true"
+  "orientation": "portrait"
 }
