@@ -45,21 +45,32 @@ var ContactsButtons = {
 
   // Check current situation and setup different listener for the button
   _setupPhoneButtonListener: function setupPhoneButtonListener(button, number) {
-    var self = this;
-
-    if (this._activityHandler &&
-        this._activityHandler.currentActivityIsNot(['open'])) {
-      button.addEventListener('click', this._onPickNumber.bind(this));
-    } else if (this._isMMI(number)) {
-      button.addEventListener('click', this._onMMICode.bind(this));
-    } else if (navigator.mozTelephony) {
-      LazyLoader.load(['/shared/js/multi_sim_action_button.js'], function() {
-        /* jshint nonew: false */
-        new MultiSimActionButton(button, self._call.bind(self),
-                                 'ril.telephony.defaultServiceId',
-                                 () => number);
+    /////// HACK ////////
+    button.addEventListener('click', function() {
+      new MozActivity({
+        name: 'dial',
+        data: {
+          type: 'webtelephony/number',
+          number: number
+        }
       });
-    }
+    });
+
+    // var self = this;
+
+    // if (this._activityHandler &&
+    //     this._activityHandler.currentActivityIsNot(['open'])) {
+      // button.addEventListener('click', this._onPickNumber.bind(this));
+    // } else if (this._isMMI(number)) {
+      // button.addEventListener('click', this._onMMICode.bind(this));
+    // } else if (navigator.mozTelephony) {
+    //   LazyLoader.load(['/shared/js/multi_sim_action_button.js'], function() {
+    //     /* jshint nonew: false */
+    //     new MultiSimActionButton(button, self._call.bind(self),
+    //                              'ril.telephony.defaultServiceId',
+    //                              () => number);
+    //   });
+    // }
   },
 
   // If we are currently handing an activity, send the phone
@@ -120,7 +131,7 @@ var ContactsButtons = {
   },
 
   /////////////Contacts.js/////////////////////
-  
+
   getLength: function getLength(prop) {
     if (!prop || !prop.length) {
       return 0;
