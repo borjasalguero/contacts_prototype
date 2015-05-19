@@ -24,4 +24,22 @@ iframe {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  border: 0;
+}
+
+#change-view-button {
+  z-index: 10000000;
+  height: 6rem;
+  width: 6rem;
+  position: absolute;
+  left: 2rem;
+  border-radius: 3rem;
+  bottom: 2rem;
+  background-color: white;
+  background-image: url(magic.png);
+  background-size: 50%;
+  background-repeat: no-repeat;
+  border: 2px solid black;
+  background-position: 60% center;
+  box-sizing: border-box;
 }

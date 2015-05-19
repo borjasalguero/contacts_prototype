@@ -2,9 +2,7 @@
   var config = {
     'performance': false,
     'debug': false,
-    // Could be any value between
-    // ['list', 'detail', 'all']
-    'original-ui': []
+    'original-ui': true
   }
 
   exports.Config = {
@@ -16,6 +14,9 @@
     },
     get originalUI() {
       return config['original-ui']
+    },
+    set originalUI(value) {
+      config['original-ui'] = value
     }
   };
 }(this));
