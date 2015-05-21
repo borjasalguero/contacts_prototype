@@ -11,7 +11,8 @@ function renderContacts(renderCB, onRenderedCB) {
   var stream = contactsService.stream('getAll');
   // Called every time the service sends a contact
   stream.listen(function(data) {
-    renderCB(data);
+    var contact = JSON.parse(data.contact);
+    renderCB(contact, data);
   });
 
   // "closed" is a Promise that will be fullfilled when stream is closed with
@@ -23,8 +24,7 @@ function renderContacts(renderCB, onRenderedCB) {
   });
 }
 
-function renderContact(data) {
-  var contact = JSON.parse(data.contact);
+function renderContact(contact, data) {
   // Doing this after serialization
   if (firstContact) {
     PERFORMACE_FLAG && performance.mark('first_contact_' + renderCount);
@@ -35,7 +35,7 @@ function renderContact(data) {
   var li = document.createElement('li');
   var name = contact.givenName[0];
 
-  if (data.photo && data.photo.length > 0) {
+  if (data && data.photo && data.photo.length > 0) {
     var url = URL.createObjectURL(data.photo[0]);
     li.innerHTML = '<div data-contact="' + contact.id + '" data-url="' + url + '" class="background-image" style="background-image:url(' + url + ');">' + name.charAt(0) + '</div>';
   } else {
@@ -127,6 +127,23 @@ function renderList() {
   PERFORMACE_FLAG && performance.mark('request_all_' + renderCount);
 
   ul.innerHTML = '';
+
+  if (navigator.userAgent.indexOf('Mobile') === -1) {
+    var alphabet = ('abcdefghijklmnñopqrstuvwxyz').split('');
+    alphabet.forEach(function(character, index) {
+      console.log('character ' + character);
+      renderContact(
+        {
+          givenName: [character],
+          id: 1
+        }
+
+      )
+    });
+
+    return;
+  }
+
   renderContacts(
     renderContact,
     allRenderedHandler
@@ -158,6 +175,11 @@ var element;
 
 var settingsButton;
 window.onload = function() {
+  if (navigator.userAgent.indexOf('Firefox') === -1) {
+    alert('ERROR!: Move to Firefox for testing this prototype :)');
+    return;
+  }
+
   ul = document.querySelector('ul');
   settingsButton = document.getElementById('settings-button');
   ul.innerHTML = '';

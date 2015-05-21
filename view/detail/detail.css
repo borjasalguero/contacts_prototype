@@ -39,6 +39,7 @@ header span {
   font-size: 9rem;
   color: white;
   pointer-events: none;
+  text-transform: uppercase;
 }
 
 #info-container {
