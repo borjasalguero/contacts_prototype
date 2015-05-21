@@ -39,7 +39,7 @@ window.onload = function() {
         _uuid,
         {
           destination: 'list',
-          effect: 'fade'
+          effect: 'right'
         }
       );
       // No need to wait, due to no animation is needed in Detail
