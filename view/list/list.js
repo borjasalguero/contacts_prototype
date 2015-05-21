@@ -1,3 +1,137 @@
+var contactsService;
+var ul;
+// Performance related vars
+var firstContact = true;
+var renderCount = 0;
+var maxRenders = 3;
+// NOTE! Modify this value to retrieve all performance values
+var PERFORMACE_FLAG = false;
+
+function renderContacts(renderCB, onRenderedCB) {
+  var stream = contactsService.stream('getAll');
+  // Called every time the service sends a contact
+  stream.listen(function(data) {
+    renderCB(data);
+  });
+
+  // "closed" is a Promise that will be fullfilled when stream is closed with
+  // success or rejected when the service "abort" the operation
+  stream.closed.then(function onStreamClose() {
+    onRenderedCB();
+  }, function onStreamAbort() {
+    onRenderedCB(new Error('Error when rendering'));
+  });
+}
+
+function renderContact(data) {
+  var contact = JSON.parse(data.contact);
+  // Doing this after serialization
+  if (firstContact) {
+    PERFORMACE_FLAG && performance.mark('first_contact_' + renderCount);
+    firstContact = false;
+  }
+
+
+  var li = document.createElement('li');
+  var name = contact.givenName[0];
+
+  if (data.photo && data.photo.length > 0) {
+    var url = URL.createObjectURL(data.photo[0]);
+    li.innerHTML = '<div data-contact="' + contact.id + '" data-url="' + url + '" class="background-image" style="background-image:url(' + url + ');">' + name.charAt(0) + '</div>';
+  } else {
+    li.innerHTML = '<div data-contact="' + contact.id + '" data-color="' + colors[colorIndex] + '">' + name.charAt(0) + '</div>';
+    li.querySelector('div').style["background-color"] = colors[colorIndex];
+    if (++colorIndex === colors.length -1) {
+      colorIndex = 0;
+    }
+  }
+  setTimeout(function() {
+    ul.appendChild(li);
+  });
+}
+
+function allRenderedHandler(e) {
+  if (e) {
+    alert('ERROR! ');
+    return;
+  }
+
+  if (!PERFORMACE_FLAG) {
+    return;
+  }
+
+  firstContact = true;
+  performance.mark('contacts_rendered_' + renderCount);
+  performance.measure('first_rendered_' + renderCount, 'request_all_' + renderCount, 'first_contact_' + renderCount);
+  performance.measure('all_rendered_' + renderCount, 'request_all_' + renderCount, 'contacts_rendered_' + renderCount);
+
+
+  if (++renderCount < maxRenders) {
+    setTimeout(renderList, 1000);
+  } else {
+    console.log('******** PERFORMANCE SUMMARY ********');
+    var measures = performance.getEntriesByType('measure');
+    var performanceResult = {
+      first_contact: {
+        peak: 0,
+        average: 0,
+        average_from_first: 0
+      },
+      all_rendered: {
+        peak: 0,
+        average: 0,
+        average_from_first: 0
+      }
+    };
+    for (var i = 0; i < measures.length; i++) {
+      if (i%2 === 0) {
+        performanceResult.first_contact.average += measures[i].duration;
+        if (i > 0) {
+          performanceResult.first_contact.average_from_first += measures[i].duration;
+        }
+
+        if (measures[i].duration > performanceResult.first_contact.peak) {
+          performanceResult.first_contact.peak = measures[i].duration;
+        }
+      } else {
+        performanceResult.all_rendered.average += measures[i].duration;
+        if (i > 1) {
+          performanceResult.all_rendered.average_from_first += measures[i].duration;
+        }
+
+        if (measures[i].duration > performanceResult.all_rendered.peak) {
+          performanceResult.all_rendered.peak = measures[i].duration;
+        }
+      }
+    }
+
+    performanceResult.first_contact.average_from_first = performanceResult.first_contact.average_from_first / (maxRenders - 1);
+    performanceResult.all_rendered.average_from_first = performanceResult.all_rendered.average_from_first / (maxRenders - 1);
+
+    performanceResult.first_contact.average = performanceResult.first_contact.average / maxRenders;
+    performanceResult.all_rendered.average = performanceResult.all_rendered.average / maxRenders;
+
+    console.log('**** FIRST CONTACT ****');
+    console.log('Peak:' + performanceResult.first_contact.peak);
+    console.log('Average:' + performanceResult.first_contact.average);
+    console.log('Average after the first request:' + performanceResult.first_contact.average_from_first);
+
+    console.log('**** ALL CONTACTS RETRIEVED ****');
+    console.log('Peak:' + performanceResult.all_rendered.peak);
+    console.log('Average:' + performanceResult.all_rendered.average);
+    console.log('Average after the first request:' + performanceResult.all_rendered.average_from_first);
+  }
+}
+
+function renderList() {
+  PERFORMACE_FLAG && performance.mark('request_all_' + renderCount);
+
+  ul.innerHTML = '';
+  renderContacts(
+    renderContact,
+    allRenderedHandler
+  );
+}
 
 // Method for retrieving the position of the element taking as a reference
 // the whole document (scroll included)
@@ -21,7 +155,7 @@ var _uuid;
 // Element clicked must be cached for animations
 var element;
 
-var ul;
+
 var settingsButton;
 window.onload = function() {
   ul = document.querySelector('ul');
@@ -29,38 +163,10 @@ window.onload = function() {
   ul.innerHTML = '';
 
   // Contacts service
-  var contactsService = threads.client('contacts-service');
-  var stream = contactsService.stream('getAll');
-  // Called every time the service sends a contact
-  stream.listen(function(data) {
-    var contact = JSON.parse(data.contact);
-    var li = document.createElement('li');
-    var name = contact.givenName[0];
-    if (data.photo && data.photo.length > 0) {
-      var url = URL.createObjectURL(data.photo[0]);
-      li.innerHTML = '<div data-contact="' + contact.id + '" data-url="' + url + '" class="background-image" style="background-image:url(' + url + ');">' + name.charAt(0) + '</div>';
-    } else {
-      li.innerHTML = '<div data-contact="' + contact.id + '" data-color="' + colors[colorIndex] + '">' + name.charAt(0) + '</div>';
-      li.querySelector('div').style["background-color"] = colors[colorIndex];
-      if (++colorIndex === colors.length -1) {
-        colorIndex = 0;
-      }
-    }
+  contactsService = threads.client('contacts-service');
 
-    setTimeout(function() {
-      ul.appendChild(li);
-    });
-  });
-
-  // "closed" is a Promise that will be fullfilled when stream is closed with
-  // success or rejected when the service "abort" the operation
-  stream.closed.then(function onStreamClose() {
-    /// TODO Use if needed
-  }, function onStreamAbort() {
-    console.log('ERROR: Stream aborted');
-  });
-
-
+  // Render list of contacts based on the Service
+  renderList();
 
   // Navigation service
   var navigation = threads.client('navigation-service');
