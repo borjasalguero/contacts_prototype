@@ -387,9 +387,15 @@ contacts.List = (function() {
     console.log('>> loading CONFIG');
     utils.config.load('/contacts/config.json').then(function ready(configData) {
       console.log('>> loaded CONFIG');
+      //////////////// HACK ////////////////
+      /*
       orderByLastName = (configData.defaultContactsOrder ===
                 ORDER_BY_FAMILY_NAME ? true : false);
       defaultImage = configData.defaultImage === true;
+      */
+      orderByLastName = false;
+      defaultImage = true;
+      //////////////// HACK ////////////////
       utils.cookie.update({
         order: orderByLastName,
         defaultImage: defaultImage
@@ -793,9 +799,12 @@ contacts.List = (function() {
     // If above the fold for list or if the contact is in the cache,
     // create the DOM node. If the contact is in the cache and has not
     // changed, we won't append it to the DOM.
-    if (list.children.length < getRowsPerPage() || inCache) {
+    //////////////// HACK ////////////////
+    /*if (list.children.length < getRowsPerPage() || inCache) {
       renderContact(contact, ph);
-    }
+    }*/
+    renderContact(contact, ph);
+    //////////////// HACK ////////////////
 
     if (!loadedContacts[contact.id]) {
       loadedContacts[contact.id] = {};

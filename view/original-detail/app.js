@@ -40,6 +40,7 @@ function loadContact(contact){
     LazyLoader.load(
       [SHARED_UTILS_PATH + '/misc.js',
        './shared/js/contacts/sms_integration.js',
+       './contacts/js/tag_options.js',
        './shared/js/contacts/utilities/dom.js',
        './shared/js/contacts/contacts_buttons.js'],
     function() {
