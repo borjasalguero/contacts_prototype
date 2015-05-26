@@ -45,9 +45,9 @@ function renderContact(contact, data) {
       colorIndex = 0;
     }
   }
-  setTimeout(function() {
+  // setTimeout(function() {
     ul.appendChild(li);
-  });
+  // });
 }
 
 function allRenderedHandler(e) {
@@ -55,6 +55,9 @@ function allRenderedHandler(e) {
     alert('ERROR! ');
     return;
   }
+
+  // Cache view in the SW for future visits to the list
+  cacheView();
 
   if (!PERFORMACE_FLAG) {
     return;
@@ -123,11 +126,26 @@ function allRenderedHandler(e) {
   }
 }
 
+function cacheView() {
+  document.querySelector('ul').dataset.cached = true;
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', window.location.href);
+  xhr.setRequestHeader('Content-Type', 'text/html');
+  xhr.send(document.documentElement.outerHTML);
+}
+
 function renderList() {
   PERFORMACE_FLAG && performance.mark('request_all_' + renderCount);
 
+  if (document.querySelector('ul').dataset.cached == "true") {
+    console.log('******* This was rendered from SW! *****');
+    return;
+  }
+
+  // Render from scratch if the view was not cached before
   ul.innerHTML = '';
 
+  // FALLBACK: Just for rendering an UI when we are not in FxOS
   if (navigator.userAgent.indexOf('Mobile') === -1) {
     var alphabet = ('abcdefghijklmnñopqrstuvwxyz').split('');
     alphabet.forEach(function(character, index) {
@@ -137,13 +155,12 @@ function renderList() {
           givenName: [character],
           id: 1
         }
-
-      )
+      );
     });
-
     return;
   }
 
+  // Render all contacts if mozContacts is available
   renderContacts(
     renderContact,
     allRenderedHandler
@@ -182,7 +199,6 @@ window.onload = function() {
 
   ul = document.querySelector('ul');
   settingsButton = document.getElementById('settings-button');
-  ul.innerHTML = '';
 
   // Contacts service
   contactsService = threads.client('contacts-service');

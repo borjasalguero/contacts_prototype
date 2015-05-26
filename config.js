@@ -2,7 +2,7 @@
   var config = {
     'performance': false,
     'debug': false,
-    'original-ui': true
+    'original-ui': false
   }
 
   exports.Config = {
